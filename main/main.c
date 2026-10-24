@@ -38,6 +38,7 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_netif_sntp.h"
+#include "esp_timer.h"
 #include "esp_websocket_client.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
@@ -302,6 +303,13 @@ static void close_task(void *arg)
         ESP_LOGW(TAG, "back to Vibe Mode failed: %s", esp_err_to_name(e));
     }
     vTaskDelete(NULL);
+}
+
+/* The core's clock (hold-to-close, drawing budget): microseconds since boot, as milliseconds. */
+static uint32_t now_ms(void *ctx)
+{
+    (void)ctx;
+    return (uint32_t)(esp_timer_get_time() / 1000);
 }
 
 static void on_close(void *ctx)
@@ -612,7 +620,8 @@ void app_main(void)
         return;
     }
     const chakra_core_config_t core_cfg = {.poll = poll_reading, .on_light = on_light, .on_settings = on_settings,
-                                           .on_close = on_close, .on_haptic = on_haptic, .settings = app.settings};
+                                           .on_close = on_close, .on_haptic = on_haptic, .now_ms = now_ms,
+                                           .settings = app.settings};
     ESP_ERROR_CHECK(chakra_core_create(app.ui, &core_cfg, &app.core));
     chakra_core_set_lamps(app.core, app.rows, app.row_count);
     xTaskCreate(mic_task, "chakra_mic", 8192, NULL, 6, NULL);

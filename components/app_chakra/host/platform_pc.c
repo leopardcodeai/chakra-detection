@@ -103,6 +103,13 @@ static void on_settings(const chakra_settings_t *s, void *ctx)
     }
 }
 
+/* The core's clock (hold-to-close, drawing budget): the bridge's monotonic milliseconds. */
+static uint32_t now_ms(void *ctx)
+{
+    (void)ctx;
+    return (uint32_t)gsp_sim_bridge_time_ms();
+}
+
 static void on_close(void *ctx)
 {
     (void)ctx;
@@ -186,7 +193,7 @@ esp_gsp_err_t gsp_bridge_app_init(esp_gsp_handle_t ui)
 {
     host.listener = listen_loopback();
     chakra_core_config_t cfg = {.poll = poll_audio, .on_light = on_light, .on_settings = on_settings,
-                                .on_close = on_close};
+                                .on_close = on_close, .now_ms = now_ms};
     chakra_settings_defaults(&cfg.settings);
     host.lamps = cfg.settings.lamps;
     chakra_detect_config_t dc;

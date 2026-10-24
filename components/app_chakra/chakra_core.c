@@ -24,6 +24,8 @@
 #define LEARN_MS 1500          // a bowl must ring steadily this long to be learned
 #define LEARN_CENTS 40.0f      // steady: within this of the running mean
 #define HOP_MS (1000 * CHAKRA_HOP / CHAKRA_RATE)
+#define DRAW_BUDGET_MS (TICK_MS / 2)  // optional drawing per tick, see spare()
+#define SHADOW_SLOTS 256       // a power of two, about twice the scene's setters
 
 /* Material Design Icons, UTF-8, as in make_scene.py: home-assistant, lightbulb, wifi, bluetooth. */
 static const char *const KIND_ICON[] = {"\xf3\xb0\x9f\x90", "\xf3\xb0\x8c\xb5", "\xf3\xb0\x96\xa9", "\xf3\xb0\x82\xaf"};
@@ -43,6 +45,12 @@ static const char *const TEXT[2][S_COUNT] = {
      "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag"},
 };
 
+/* The value a setter last sent; see put() below. */
+typedef struct {
+    uintptr_t setter;  // 0: a free slot
+    uint64_t value;    // the value, or a hash of the text
+} shadow_t;
+
 struct chakra_core {
     esp_gsp_handle_t ui;
     chakra_core_config_t cfg;
@@ -52,6 +60,8 @@ struct chakra_core {
     void *timer;
     void *hold_timer;
     uint32_t hold_ms;
+    uint32_t hold_since;  // now_ms() when the hold began
+    uint32_t tick_start;  // now_ms() when this tick began
     bool hold_shown;
     bool settings_open;
     int shown;            // chakra on screen, -1 idle
@@ -61,7 +71,9 @@ struct chakra_core {
     uint32_t drawn_rgb;
     float tune;           // tuning ring now, 0..100
     int tune_drawn;
-    uint8_t bars[CHAKRA_BARS];
+    uint8_t bars[CHAKRA_BARS];       // the spectrum on screen
+    uint8_t bars_want[CHAKRA_BARS];  // the last reading's spectrum
+    int bar_next;                    // the bar the next spectrum pass starts with
     uint32_t ticks, sub_tick;
     chakra_reading_t last;
     int learn;            // bowl being learned 0..6, -1 when not learning
@@ -70,6 +82,7 @@ struct chakra_core {
     int learn_n;
     bool learn_gap;       // after a capture: wait for silence or another bowl
     esp_gsp_err_t last_error;
+    shadow_t shadow[SHADOW_SLOTS];
 };
 
 static void err(struct chakra_core *c, esp_gsp_err_t e)
@@ -77,6 +90,97 @@ static void err(struct chakra_core *c, esp_gsp_err_t e)
     if (e != ESP_GSP_OK) {
         c->last_error = e;
     }
+}
+
+// ------------------------------------------------------------------ setters --
+
+/* Every setter is one round trip to the screen. In the simulator that is one frame of its host,
+ * about 20 ms (measured 25.10.2026), so a tick that drew the fade, the tuning ring, the note line
+ * and 16 bars took 100 to 500 ms instead of 40, and the hold-to-close gesture fell behind. The
+ * value each setter sent last is kept, and an unchanged value is not sent again; put() picks the
+ * right one of these by the setter's type. */
+typedef esp_gsp_err_t (*set_bool_t)(esp_gsp_handle_t, bool);
+typedef esp_gsp_err_t (*set_i32_t)(esp_gsp_handle_t, int32_t);
+typedef esp_gsp_err_t (*set_rgb_t)(esp_gsp_handle_t, uint32_t);
+typedef esp_gsp_err_t (*set_text_t)(esp_gsp_handle_t, const char *);
+
+/* The setter's slot, or NULL when the table is full (then it always sends). */
+static shadow_t *shadow_of(struct chakra_core *c, uintptr_t setter)
+{
+    size_t i = (size_t)(((uint64_t)setter * 0x9E3779B97F4A7C15ull) >> 40) & (SHADOW_SLOTS - 1);
+    for (int n = 0; n < SHADOW_SLOTS; ++n, i = (i + 1) & (SHADOW_SLOTS - 1)) {
+        if (c->shadow[i].setter == setter || c->shadow[i].setter == 0) {
+            return &c->shadow[i];
+        }
+    }
+    return NULL;
+}
+
+static bool unchanged(const shadow_t *s, uint64_t value)
+{
+    return s && s->setter && s->value == value;
+}
+
+/* Only a value the screen took is remembered; after an error the next call sends again. */
+static void remember(struct chakra_core *c, shadow_t *s, uintptr_t setter, uint64_t value, esp_gsp_err_t e)
+{
+    err(c, e);
+    if (s && e == ESP_GSP_OK) {
+        s->setter = setter;
+        s->value = value;
+    }
+}
+
+static void put_bool(struct chakra_core *c, set_bool_t set, bool v)
+{
+    shadow_t *s = shadow_of(c, (uintptr_t)set);
+    if (!unchanged(s, v)) {
+        remember(c, s, (uintptr_t)set, v, set(c->ui, v));
+    }
+}
+
+static void put_i32(struct chakra_core *c, set_i32_t set, int32_t v)
+{
+    shadow_t *s = shadow_of(c, (uintptr_t)set);
+    if (!unchanged(s, (uint32_t)v)) {
+        remember(c, s, (uintptr_t)set, (uint32_t)v, set(c->ui, v));
+    }
+}
+
+static void put_rgb(struct chakra_core *c, set_rgb_t set, uint32_t v)
+{
+    shadow_t *s = shadow_of(c, (uintptr_t)set);
+    if (!unchanged(s, v)) {
+        remember(c, s, (uintptr_t)set, v, set(c->ui, v));
+    }
+}
+
+static void put_text(struct chakra_core *c, set_text_t set, const char *text)
+{
+    uint64_t h = 0xCBF29CE484222325ull;  // FNV-1a
+    for (const char *p = text; p && *p; ++p) {
+        h = (h ^ (uint8_t)*p) * 0x100000001B3ull;
+    }
+    shadow_t *s = shadow_of(c, (uintptr_t)set);
+    if (!unchanged(s, h)) {
+        remember(c, s, (uintptr_t)set, h, set(c->ui, text));
+    }
+}
+
+#define put(c, setter, v) _Generic((setter), set_bool_t: put_bool, set_i32_t: put_i32, set_rgb_t: put_rgb, \
+                                   set_text_t: put_text)(c, setter, v)
+
+static uint32_t now(const struct chakra_core *c)
+{
+    return c->cfg.now_ms ? c->cfg.now_ms(c->cfg.ctx) : 0;
+}
+
+/* Time left in this tick for drawing that can wait (the fade, the tuning ring, the note line,
+ * the spectrum): what is skipped now is drawn with a later tick's values. On the board every
+ * setter is quick and nothing waits; in the simulator about one such setter fits a tick. */
+static bool spare(const struct chakra_core *c)
+{
+    return !c->cfg.now_ms || now(c) - c->tick_start < DRAW_BUDGET_MS;
 }
 
 static const char *T(const struct chakra_core *c, int id)
@@ -129,17 +233,17 @@ static void draw_chakra(struct chakra_core *c, int chakra)
         gsp_chakra_grp_ring_3_set_visible, gsp_chakra_grp_ring_4_set_visible, gsp_chakra_grp_ring_5_set_visible,
         gsp_chakra_grp_ring_6_set_visible};
     for (int i = 0; i < CHAKRA_COUNT; ++i) {
-        err(c, sym[i](c->ui, i == chakra));
-        err(c, ring[i](c->ui, i == chakra));
+        put(c, sym[i], i == chakra);
+        put(c, ring[i], i == chakra);
     }
-    err(c, gsp_chakra_grp_sym_idle_set_visible(c->ui, chakra < 0));
-    err(c, gsp_chakra_grp_tune_set_visible(c->ui, chakra >= 0));
+    put(c, gsp_chakra_grp_sym_idle_set_visible, chakra < 0);
+    put(c, gsp_chakra_grp_tune_set_visible, chakra >= 0);
     const chakra_info_t *info = chakra_info(chakra);
     const char *name = !info ? T(c, S_READY) : c->s.lang == CHAKRA_LANG_DE ? info->german : info->english;
-    err(c, gsp_chakra_name_text_set_text(c->ui, name));
-    err(c, gsp_chakra_sanskrit_text_set_text(c->ui, info ? info->sanskrit : ""));
+    put(c, gsp_chakra_name_text_set_text, name);
+    put(c, gsp_chakra_sanskrit_text_set_text, info ? info->sanskrit : "");
     if (!info) {
-        err(c, gsp_chakra_sub_text_set_text(c->ui, T(c, S_STRIKE)));
+        put(c, gsp_chakra_sub_text_set_text, T(c, S_STRIKE));
     }
     c->target_rgb = info ? info->rgb : IDLE_RGB;
 }
@@ -155,10 +259,10 @@ static void draw_sub(struct chakra_core *c)
     char line[96];
     snprintf(line, sizeof(line), c->s.lang == CHAKRA_LANG_DE ? "%s%d · %d,%d Hz · %+d ct" : "%s%d · %d.%d Hz · %+d ct",
              chakra_note_name(r->note), r->octave, tenths / 10, tenths % 10, r->cents);
-    err(c, gsp_chakra_sub_text_set_text(c->ui, line));
+    put(c, gsp_chakra_sub_text_set_text, line);
 }
 
-static void draw_bars(struct chakra_core *c, const uint8_t *bars)
+static void draw_bars(struct chakra_core *c)
 {
     static esp_gsp_err_t (*const set[CHAKRA_BARS])(esp_gsp_handle_t, int32_t) = {
         gsp_chakra_bar_0_set_value, gsp_chakra_bar_1_set_value, gsp_chakra_bar_2_set_value,
@@ -167,11 +271,14 @@ static void draw_bars(struct chakra_core *c, const uint8_t *bars)
         gsp_chakra_bar_9_set_value, gsp_chakra_bar_10_set_value, gsp_chakra_bar_11_set_value,
         gsp_chakra_bar_12_set_value, gsp_chakra_bar_13_set_value, gsp_chakra_bar_14_set_value,
         gsp_chakra_bar_15_set_value};
-    for (int b = 0; b < CHAKRA_BARS; ++b) {
+    const uint8_t *bars = c->bars_want;
+    for (int k = 0; k < CHAKRA_BARS && spare(c); ++k) {
+        const int b = (c->bar_next + k) % CHAKRA_BARS;
         const int d = (int)bars[b] - (int)c->bars[b];
         if (d >= 2 || d <= -2 || (bars[b] == 0 && c->bars[b] != 0)) {
             c->bars[b] = bars[b];
-            err(c, set[b](c->ui, bars[b]));
+            put(c, set[b], bars[b]);
+            c->bar_next = (b + 1) % CHAKRA_BARS;
         }
     }
 }
@@ -187,9 +294,9 @@ static void animate(struct chakra_core *c)
         c->cur[i] = (d > -1.0f && d < 1.0f) ? t[i] : c->cur[i] + d * (c->s.reaction == CHAKRA_STRIKE ? FADE_STRIKE : FADE_FLOW);
         rgb = (rgb << 8) | (uint32_t)(c->cur[i] + 0.5f);
     }
-    if (rgb != c->drawn_rgb) {
+    if (rgb != c->drawn_rgb && spare(c)) {
         c->drawn_rgb = rgb;
-        err(c, gsp_chakra_bg_set_color_rgb888(c->ui, rgb));
+        put(c, gsp_chakra_bg_set_color_rgb888, rgb);
     }
     if (c->learn < 0) {
         const int cents = c->last.cents < 0 ? -c->last.cents : c->last.cents;
@@ -197,25 +304,25 @@ static void animate(struct chakra_core *c)
         c->tune += (goal - c->tune) * TUNE_STEP;
     }
     const int v = (int)(c->tune + 0.5f);
-    if (v != c->tune_drawn) {
+    if (v != c->tune_drawn && spare(c)) {
         c->tune_drawn = v;
-        err(c, gsp_chakra_tune_arc_set_value(c->ui, v));
+        put(c, gsp_chakra_tune_arc_set_value, v);
     }
 }
 
 /* Words that only change with the language. */
 static void draw_labels(struct chakra_core *c)
 {
-    err(c, gsp_chakra_lbl_lights_set_text(c->ui, T(c, S_LIGHTS)));
-    err(c, gsp_chakra_lbl_bright_set_text(c->ui, T(c, S_BRIGHT)));
-    err(c, gsp_chakra_lbl_sens_set_text(c->ui, T(c, S_SENS)));
-    err(c, gsp_chakra_lbl_hold_set_text(c->ui, T(c, S_HOLD)));
+    put(c, gsp_chakra_lbl_lights_set_text, T(c, S_LIGHTS));
+    put(c, gsp_chakra_lbl_bright_set_text, T(c, S_BRIGHT));
+    put(c, gsp_chakra_lbl_sens_set_text, T(c, S_SENS));
+    put(c, gsp_chakra_lbl_hold_set_text, T(c, S_HOLD));
     char notes[24];
     snprintf(notes, sizeof(notes), "%s %d", T(c, S_NOTES), c->s.a4 == 432 ? 432 : 440);
-    err(c, gsp_chakra_lbl_map_notes_set_text(c->ui, notes));
-    err(c, gsp_chakra_lbl_map_bowls_set_text(c->ui, T(c, S_BOWLS)));
-    err(c, gsp_chakra_lbl_react_flow_set_text(c->ui, T(c, S_FLOW)));
-    err(c, gsp_chakra_lbl_react_strike_set_text(c->ui, T(c, S_STRIKE_MODE)));
+    put(c, gsp_chakra_lbl_map_notes_set_text, notes);
+    put(c, gsp_chakra_lbl_map_bowls_set_text, T(c, S_BOWLS));
+    put(c, gsp_chakra_lbl_react_flow_set_text, T(c, S_FLOW));
+    put(c, gsp_chakra_lbl_react_strike_set_text, T(c, S_STRIKE_MODE));
 }
 
 static void draw_lamps(struct chakra_core *c)
@@ -243,18 +350,18 @@ static void draw_lamps(struct chakra_core *c)
         gsp_chakra_grp_veil_3_set_visible};
     for (int i = 0; i < CHAKRA_LAMPS; ++i) {
         const bool used = i < c->lamp_count;
-        err(c, row_vis[i](c->ui, used));
+        put(c, row_vis[i], used);
         if (!used) {
             continue;
         }
         const chakra_lamp_t *l = &c->lamps[i];
         const bool on = l->paired && (c->s.lamps & (1u << i));
-        err(c, row_rgb[i](c->ui, on ? ON_RGB : ROW_RGB));
-        err(c, icon[i](c->ui, KIND_ICON[l->kind]));
-        err(c, name[i](c->ui, l->name[0] ? l->name : T(c, S_KIND_HA + (int)l->kind)));
-        err(c, info[i](c->ui, l->paired ? T(c, S_KIND_HA + (int)l->kind) : T(c, S_NOT_PAIRED)));
-        err(c, check[i](c->ui, on));
-        err(c, veil[i](c->ui, !l->paired));
+        put(c, row_rgb[i], on ? ON_RGB : ROW_RGB);
+        put(c, icon[i], KIND_ICON[l->kind]);
+        put(c, name[i], l->name[0] ? l->name : T(c, S_KIND_HA + (int)l->kind));
+        put(c, info[i], l->paired ? T(c, S_KIND_HA + (int)l->kind) : T(c, S_NOT_PAIRED));
+        put(c, check[i], on);
+        put(c, veil[i], !l->paired);
     }
 }
 
@@ -263,21 +370,22 @@ static void draw_settings(struct chakra_core *c)
     draw_lamps(c);
     char v[24];
     snprintf(v, sizeof(v), "%d %%", c->s.brightness);
-    err(c, gsp_chakra_val_bright_set_text(c->ui, v));
+    put(c, gsp_chakra_val_bright_set_text, v);
     snprintf(v, sizeof(v), "%d dB", -30 - 5 * c->s.sensitivity);
-    err(c, gsp_chakra_val_sens_set_text(c->ui, v));
+    put(c, gsp_chakra_val_sens_set_text, v);
     snprintf(v, sizeof(v), c->s.lang == CHAKRA_LANG_DE ? "%d,%d s" : "%d.%d s", c->s.hold_ds / 10, c->s.hold_ds % 10);
-    err(c, gsp_chakra_val_hold_set_text(c->ui, v));
+    put(c, gsp_chakra_val_hold_set_text, v);
+    /* A finger moves the sliders too, so they are never skipped as unchanged. */
     err(c, gsp_chakra_sl_bright_set_value(c->ui, c->s.brightness));
     err(c, gsp_chakra_sl_sens_set_value(c->ui, c->s.sensitivity));
     err(c, gsp_chakra_sl_hold_set_value(c->ui, c->s.hold_ds));
-    err(c, gsp_chakra_map_notes_set_color_rgb888(c->ui, c->s.map == CHAKRA_MAP_NOTES ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_map_solf_set_color_rgb888(c->ui, c->s.map == CHAKRA_MAP_SOLFEGGIO ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_map_bowls_set_color_rgb888(c->ui, c->s.map == CHAKRA_MAP_BOWLS ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_react_flow_set_color_rgb888(c->ui, c->s.reaction == CHAKRA_FLOW ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_react_strike_set_color_rgb888(c->ui, c->s.reaction == CHAKRA_STRIKE ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_lang_en_set_color_rgb888(c->ui, c->s.lang == CHAKRA_LANG_EN ? ON_RGB : OFF_RGB));
-    err(c, gsp_chakra_lang_de_set_color_rgb888(c->ui, c->s.lang == CHAKRA_LANG_DE ? ON_RGB : OFF_RGB));
+    put(c, gsp_chakra_map_notes_set_color_rgb888, c->s.map == CHAKRA_MAP_NOTES ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_map_solf_set_color_rgb888, c->s.map == CHAKRA_MAP_SOLFEGGIO ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_map_bowls_set_color_rgb888, c->s.map == CHAKRA_MAP_BOWLS ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_react_flow_set_color_rgb888, c->s.reaction == CHAKRA_FLOW ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_react_strike_set_color_rgb888, c->s.reaction == CHAKRA_STRIKE ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_lang_en_set_color_rgb888, c->s.lang == CHAKRA_LANG_EN ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_lang_de_set_color_rgb888, c->s.lang == CHAKRA_LANG_DE ? ON_RGB : OFF_RGB);
 }
 
 static void settings_changed(struct chakra_core *c)
@@ -306,7 +414,7 @@ static void hold_stop(struct chakra_core *c)
     }
     if (c->hold_shown) {
         c->hold_shown = false;
-        err(c, gsp_chakra_grp_hold_set_visible(c->ui, false));
+        put(c, gsp_chakra_grp_hold_set_visible, false);
         err(c, esp_gsp_set_press_feedback_enabled(c->ui, true));
     }
 }
@@ -318,15 +426,17 @@ static void hold_tick(esp_gsp_handle_t ui, void *ctx)
     if (!c->hold_timer) {
         return;  // released while this call was already scheduled
     }
-    c->hold_ms += HOLD_STEP_MS;
+    /* Real time since the press, not the sum of the timer's periods: a late tick must not
+     * stretch the 3 s. Without a clock the ticks are counted, as before. */
+    c->hold_ms = c->cfg.now_ms ? now(c) - c->hold_since : c->hold_ms + HOLD_STEP_MS;
     if (c->hold_ms < HOLD_MS) {
-        err(c, gsp_chakra_hold_bar_set_value(c->ui, (int32_t)(c->hold_ms * 1000 / HOLD_MS)));
+        put(c, gsp_chakra_hold_bar_set_value, (int32_t)(c->hold_ms * 1000 / HOLD_MS));
         return;
     }
     esp_gsp_timer_delete(c->ui, c->hold_timer);
     c->hold_timer = NULL;
-    err(c, gsp_chakra_hold_bar_set_value(c->ui, 1000));
-    err(c, gsp_chakra_hold_text_set_text(c->ui, T(c, S_CLOSING)));
+    put(c, gsp_chakra_hold_bar_set_value, 1000);
+    put(c, gsp_chakra_hold_text_set_text, T(c, S_CLOSING));
     haptic(c, 2);
     if (c->cfg.on_close) {
         c->cfg.on_close(c->cfg.ctx);
@@ -339,9 +449,10 @@ static void hold_start(struct chakra_core *c)
         return;
     }
     c->hold_ms = 0;
-    err(c, gsp_chakra_hold_bar_set_value(c->ui, 0));
-    err(c, gsp_chakra_hold_text_set_text(c->ui, T(c, S_HOLD_CLOSE)));
-    err(c, gsp_chakra_grp_hold_set_visible(c->ui, true));
+    c->hold_since = now(c);
+    put(c, gsp_chakra_hold_bar_set_value, 0);
+    put(c, gsp_chakra_hold_text_set_text, T(c, S_HOLD_CLOSE));
+    put(c, gsp_chakra_grp_hold_set_visible, true);
     // The press shade would darken the orange fill; off while held, back on release.
     err(c, esp_gsp_set_press_feedback_enabled(c->ui, false));
     c->hold_shown = true;
@@ -369,7 +480,7 @@ static void learn_draw(struct chakra_core *c, const chakra_reading_t *r)
     const chakra_info_t *info = chakra_info(c->learn);
     char line[96];
     snprintf(line, sizeof(line), T(c, S_STRIKE_BOWL), c->s.lang == CHAKRA_LANG_DE ? info->german : info->english);
-    err(c, gsp_chakra_name_text_set_text(c->ui, line));
+    put(c, gsp_chakra_name_text_set_text, line);
     if (r && r->tone && c->learn_n > 0) {
         const int tenths = (int)(c->learn_mean * 10.0f + 0.5f);
         snprintf(line, sizeof(line), c->s.lang == CHAKRA_LANG_DE ? "%d/7 · %d,%d Hz" : "%d/7 · %d.%d Hz", c->learn + 1,
@@ -377,7 +488,7 @@ static void learn_draw(struct chakra_core *c, const chakra_reading_t *r)
     } else {
         snprintf(line, sizeof(line), "%d/7 · %s", c->learn + 1, T(c, S_HOLD_TONE));
     }
-    err(c, gsp_chakra_sub_text_set_text(c->ui, line));
+    put(c, gsp_chakra_sub_text_set_text, line);
     c->tune = c->learn_n > 0 ? 100.0f * (float)c->learn_ms / LEARN_MS : 0.0f;
 }
 
@@ -396,7 +507,7 @@ static void learn_step(struct chakra_core *c, int step)
     }
     draw_chakra(c, step);  // the step's colour, symbol, dot and Sanskrit name
     for (int i = 0; i < CHAKRA_COUNT; ++i) {
-        err(c, sym[i](c->ui, i == step));
+        put(c, sym[i], i == step);
     }
     learn_draw(c, NULL);
 }
@@ -404,8 +515,8 @@ static void learn_step(struct chakra_core *c, int step)
 static void learn_start(struct chakra_core *c)
 {
     c->settings_open = false;
-    err(c, gsp_chakra_grp_settings_set_visible(c->ui, false));
-    err(c, gsp_chakra_grp_pulse_set_visible(c->ui, false));
+    put(c, gsp_chakra_grp_settings_set_visible, false);
+    put(c, gsp_chakra_grp_pulse_set_visible, false);
     c->learn_gap = false;
     c->shown = -1;
     learn_step(c, 0);
@@ -496,7 +607,7 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
         if (c->settings_open) {
             draw_settings(c);
         }
-        err(c, gsp_chakra_grp_settings_set_visible(c->ui, c->settings_open));
+        put(c, gsp_chakra_grp_settings_set_visible, c->settings_open);
         haptic(c, 1);
     } else if (row >= 0) {
         if (row >= c->lamp_count || !c->lamps[row].paired) {
@@ -555,6 +666,7 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
     (void)ui;
     struct chakra_core *c = ctx;
     c->ticks++;
+    c->tick_start = now(c);
     chakra_reading_t r;
     bool fresh = false;
     for (int budget = 0; budget < 8 && c->cfg.poll && c->cfg.poll(&r, c->cfg.ctx) > 0; ++budget) {
@@ -578,7 +690,7 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
         c->last.chakra = r.chakra;
         if (sounding != c->sounding) {
             c->sounding = sounding;
-            err(c, gsp_chakra_grp_pulse_set_visible(c->ui, sounding));
+            put(c, gsp_chakra_grp_pulse_set_visible, sounding);
         }
         if (r.chakra != c->shown) {
             const bool from_silence = c->shown < 0;
@@ -591,13 +703,14 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
             }
             light(c);
         }
-        draw_bars(c, r.bars);
+        memcpy(c->bars_want, r.bars, sizeof(c->bars_want));
     }
-    if (c->shown >= 0 && c->sounding && c->ticks - c->sub_tick >= SUB_EVERY_TICKS) {
+    animate(c);
+    if (c->shown >= 0 && c->sounding && c->ticks - c->sub_tick >= SUB_EVERY_TICKS && spare(c)) {
         c->sub_tick = c->ticks;
         draw_sub(c);
     }
-    animate(c);
+    draw_bars(c);
 }
 
 // ------------------------------------------------------------------ public --
@@ -605,7 +718,7 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
 void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm)
 {
     if (c) {
-        err(c, gsp_chakra_clock_set_text(c->ui, hhmm));
+        put(c, gsp_chakra_clock_set_text, hhmm);
     }
 }
 
@@ -613,7 +726,7 @@ void chakra_core_set_connection(chakra_core_handle_t c, int state)
 {
     static const uint32_t COLOURS[] = {0xFF453A, 0xFF9500, 0x34C759, 0x30B0C7};
     if (c && state >= 0 && state < 4) {
-        err(c, gsp_chakra_conn_dot_set_color_rgb888(c->ui, COLOURS[state]));
+        put(c, gsp_chakra_conn_dot_set_color_rgb888, COLOURS[state]);
     }
 }
 

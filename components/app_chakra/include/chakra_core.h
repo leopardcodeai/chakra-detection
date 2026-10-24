@@ -61,6 +61,10 @@ typedef void (*chakra_settings_cb_t)(const chakra_settings_t *settings, void *ct
 typedef void (*chakra_close_cb_t)(void *ctx);
 /** 1 a tap or a new chakra, 2 closing. */
 typedef void (*chakra_haptic_cb_t)(int pattern, void *ctx);
+/** Milliseconds of a monotonic clock; it may wrap. The hold-to-close gesture runs on it, so a
+ *  late tick cannot stretch the 3 s, and each tick's optional drawing (the fade, the tuning ring,
+ *  the note line, the spectrum) stops once half the tick has passed. Must not block. */
+typedef uint32_t (*chakra_clock_cb_t)(void *ctx);
 
 typedef struct {
     chakra_poll_cb_t poll;
@@ -68,6 +72,7 @@ typedef struct {
     chakra_settings_cb_t on_settings;   // optional
     chakra_close_cb_t on_close;         // optional
     chakra_haptic_cb_t on_haptic;       // optional
+    chakra_clock_cb_t now_ms;           // optional; without it the gesture counts its timer's ticks
     chakra_settings_t settings;         // shown at start
     void *ctx;
 } chakra_core_config_t;
