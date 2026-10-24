@@ -1,0 +1,8 @@
+{
+  "ha_url": "ws://homeassistant.local:8123/api/websocket",
+  "ha_lights": {"light.living_room_strip": "Living room LED strip"},
+  "hue_host": "192.168.1.2",
+  "hue_lights": [5, 6, 8],
+  "wiz": ["192.168.1.30"],
+  "wifi": ["Second network"]
+}
