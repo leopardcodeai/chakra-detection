@@ -85,6 +85,13 @@ tests/analyse.sh my_bowls.wav   # any recording
 Pairing happens outside the app: Hue with the link button, Bluetooth lamps in Home Assistant (they then
 appear as Home Assistant lights), WiZ bulbs by their address.
 
+**Security.** Use a `wss://` Home Assistant address where you can (checked against the certificate
+bundle) and a Home Assistant user for this device that may only switch lights; over `ws://` the token
+travels unencrypted on your network. The Hue path uses the bridge's local v1 API over plain HTTP with
+the key in the request path, so keep the device on a network you trust; the HTTPS v2 API is planned.
+Tokens, keys and Wi-Fi passwords never sit in a file of this repository: `provision.py` reads them from
+the environment and writes them straight to the board.
+
 ## How it is built
 
 | Part | File |

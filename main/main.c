@@ -16,6 +16,8 @@
 //     microphone task, which applies them between two reads (the detection is not thread-safe).
 //   * Pairing happens outside the app (Home Assistant, the Hue link button via tools/hue_pair.py);
 //     a kind without credentials shows as "not paired".
+//   * Hue uses the bridge's v1 REST API over plain HTTP with the key in the path (LAN only); the
+//     v2 API over HTTPS with the hue-application-key header is the next step.
 //   * Untested on hardware until the board arrives (ordered 24.10.2026).
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +31,7 @@
 #include "chakra_core.h"
 #include "cJSON.h"
 #include "esp_codec_dev.h"
+#include "esp_crt_bundle.h"
 #include "esp_event.h"
 #include "esp_http_client.h"
 #include "esp_iris.h"
@@ -554,11 +557,18 @@ static void wifi_and_lamps_start(void)
     esp_sntp_config_t sntp = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
     esp_netif_sntp_init(&sntp);
     if (app.ha_url[0] && app.ha_token[0] && app.ha_count > 0) {
+        /* wss:// is checked against the certificate bundle; ws:// sends the token in the clear,
+         * acceptable only on a trusted LAN with a Home Assistant user that may switch lights only. */
+        const bool tls = strncmp(app.ha_url, "wss://", 6) == 0;
+        if (!tls) {
+            ESP_LOGW(TAG, "Home Assistant over ws:// sends the token unencrypted; prefer wss://");
+        }
         esp_websocket_client_config_t ws = {
             .uri = app.ha_url,
             .reconnect_timeout_ms = 10000,
             .network_timeout_ms = 10000,
             .buffer_size = 2048,
+            .crt_bundle_attach = tls ? esp_crt_bundle_attach : NULL,
         };
         app.ws = esp_websocket_client_init(&ws);
         esp_websocket_register_events(app.ws, WEBSOCKET_EVENT_ANY, ws_event, NULL);
