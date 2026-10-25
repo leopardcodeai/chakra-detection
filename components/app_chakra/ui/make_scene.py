@@ -225,7 +225,7 @@ def scene():
     add("container", None, "grp_url", x=0, y=0, w=432, h=120, radius=18, bg_color=TILE)
     icon("grp_url", 16, 16, 28, MONITOR)
     text("lbl_url", "grp_url", 56, 19, 360, 24, 16, BOLD, "#FFFFFFC0", sample="Screen lamp", overflow="ellipsis")
-    text("lamp_url", "grp_url", 16, 56, 400, 48, 36, XBOLD, WHITE, align="center", sample="192.168.178.123:3310",
+    text("lamp_url", "grp_url", 16, 56, 400, 48, 36, XBOLD, WHITE, align="center", sample="192.168.1.20:3310",
          overflow="ellipsis")
 
     # Hold to close, as in Muse: the bar fills orange from the left over 3 s.

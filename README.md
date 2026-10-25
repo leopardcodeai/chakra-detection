@@ -8,6 +8,14 @@ symbol, note and frequency, and colours the room: the screen itself turns the ch
 follow (Philips Hue, Home Assistant, WiZ, or any TV or laptop browser as a screen lamp). Made for sound healing journeys: put it in the middle of the room
 and play.
 
+**Which one?** There are two apps, from the same code:
+
+| | [Chakra Detection](https://github.com/leopardcodeai/chakra-detection) (this one) | [ChakraV](https://github.com/leopardcodeai/chakrav) |
+|---|---|---|
+| Listens | microphone | microphone and camera |
+| AI | optional sound gate, on the device | as much on the device as the ESP32-S31 runs, plus optional cloud models with your own API key |
+| For | rooms where a camera is not wanted: the classic, private choice | experiments: what can it see and mark? |
+
 <p align="center"><img src="docs/demo.gif" width="360" alt="The app hearing seven bowls, root to crown: the screen turns red, orange, yellow, green, blue, indigo and violet"></p>
 
 | Ready | A bowl sounds | Crown | Settings | Connections |
@@ -29,6 +37,14 @@ and play.
   `http://<its address>/lamp`.
 - **Your colour, if you like.** Under **Settings**, Colour: Auto (default) follows the chakra; a tap on one
   of the seven colours, or the Colour slider for any hue, gives a steady light that the tones do not change.
+- **AI sound gate (optional).** Under Settings, "AI sound gate" On: only bowl-like sounds change the colour,
+  fades get softer, and a gong or a drum strike gives the light a short brightness kick instead of a wrong
+  colour. On the Mac it runs EfficientAT (mn05) with a small head trained on freely licensed recordings
+  (`tools/ai_gate.py`, `chakra_feed.py mic --ai`); on the board it is meant for the ESP32-S31's AI
+  instructions through ESP-DL (mn05 at 8-bit weights and 16-bit activations, about 1.9 MB, estimated 30 to
+  60 ms per second of audio, to be measured when the board is here). First results on 33 recordings:
+  without the gate gongs coloured the room 88 % of the time they sounded, with it 18 %, while bowls kept
+  their colour 86 % of the time (90 % without). Drums, rattles and rain sticks never coloured it either way.
 - **Flow or Strike.** Flow (default) waits 0.4 s for a steady tone and fades softly, made for a journey.
   Strike reacts in 0.13 s to every strike.
 - **Three ways to map a tone to a chakra.** Notes (C root to B crown, A = 440 Hz or 432 Hz), Solfeggio

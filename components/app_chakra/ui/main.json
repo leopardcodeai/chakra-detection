@@ -2407,7 +2407,7 @@
    "y": 56,
    "w": 400,
    "h": 48,
-   "text": "192.168.178.123:3310",
+   "text": "192.168.1.20:3310",
    "font_size": 36,
    "font": "fonts/Inter-ExtraBold.ttf",
    "fg_color": "#FFFFFF",
