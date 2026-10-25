@@ -56,7 +56,7 @@
 static const char *TAG = "chakra_mosaico";
 
 #define NVS_NS "chakra"
-#define SETTINGS_VERSION 3  // 3: the screen lamp is row 0 and the colour setting ends the blob
+#define SETTINGS_VERSION 4  // 4: the AI sound gate ends the blob; 3: the screen lamp row and the colour
 #define SCREEN_LAMP_PATH "/lamp"
 #define MAX_HA 4
 #define MAX_HUE 16
@@ -192,9 +192,13 @@ static void load_settings(void)
         /* Version 2 ended before color_mode and had no screen lamp row: its lamp ticks move one
          * row down, the screen lamp is ticked, the colour stays Auto. */
         const size_t v2 = 1 + offsetof(chakra_settings_t, color_mode);
+        const size_t v3 = 1 + offsetof(chakra_settings_t, ai);  // version 3 ended before ai: it stays off
         if (nvs_get_blob(h, "settings", blob, &len) == ESP_OK) {
             if (len == sizeof(blob) && blob[0] == SETTINGS_VERSION) {
                 memcpy(&app.settings, blob + 1, sizeof(chakra_settings_t));
+            } else if (len == v3 && blob[0] == 3) {
+                memcpy(&app.settings, blob + 1, v3 - 1);
+                app.settings.ai = 0;
             } else if (len == v2 && blob[0] == 2) {
                 memcpy(&app.settings, blob + 1, v2 - 1);
                 app.settings.color_mode = CHAKRA_COLOR_AUTO;

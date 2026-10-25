@@ -13,13 +13,19 @@ What: streams signed 16-bit mono 16 kHz audio to the simulator (127.0.0.1:8698, 
       instead: the protocol line as it came, POSTed to URL/light (a page that fills the screen with
       the colour, e.g. on http://127.0.0.1:3310), so no real lamp lights up; the "reading" lines
       (chakra names, note, Hz, cents) go there too, for the page's text.
+      With --ai (mic and wav) the same audio also goes to tools/ai_gate.py (the AI sound gate,
+      EfficientAT on the Mac, in the venv AI_VENV), whose verdicts ("sound bowl|other|none
+      strike") are forwarded to the simulator's second port (the audio port + 1); they act only
+      while the app's "AI sound gate" setting is On.
 Why:  the board is on order; this tests the whole chain, microphone to lamp, on the Mac.
 Pitfalls:
   * Only one client at a time; a new feeder replaces the old one.
   * The mic needs ffmpeg (brew install ffmpeg) and the terminal's microphone permission.
-Usage:  chakra_feed.py demo | tone 341 [--seconds 4] | mic | wav FILE  [--light light.x | --lamp URL] [--dry-run]
+Usage:  chakra_feed.py demo | tone 341 [--seconds 4] | mic | wav FILE  [--light light.x | --lamp URL] [--ai]
+                       [--dry-run]
 """
 import argparse
+import array
 import json
 import math
 import os
@@ -32,6 +38,8 @@ import time
 import urllib.request
 
 RATE, HOP = 16000, 1024
+AI_RATE = 32000  # EfficientAT's rate; the app gets every pair of samples averaged down to RATE
+AI_VENV = os.path.expanduser("~/Library/Application Support/LeopardCode/chakra/ai_venv_eat/bin/python")
 A4 = 440.0  # the app's default reference
 # Note per chakra in the default note mapping (C, D, E, F, G, A, B), octave 3.
 DEMO_NOTES = [0, 2, 4, 5, 7, 9, 11]
@@ -132,11 +140,40 @@ def listen(sock, entity, lamp=None):
                 print("  closed: top bar held 3 s, the board would go back to Vibe Mode now", flush=True)
 
 
-def ffmpeg(args):
+def ffmpeg(args, rate=RATE):
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg missing: brew install ffmpeg")
-    return subprocess.Popen(["ffmpeg", "-loglevel", "error", *args, "-ac", "1", "-ar", str(RATE), "-f", "s16le", "-"],
+    return subprocess.Popen(["ffmpeg", "-loglevel", "error", *args, "-ac", "1", "-ar", str(rate), "-f", "s16le", "-"],
                             stdout=subprocess.PIPE)
+
+
+def start_gate(port):
+    """tools/ai_gate.py with its stdout forwarded line by line to the simulator's AI port."""
+    gate = subprocess.Popen([AI_VENV, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_gate.py")],
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+    def forward():
+        conn = None
+        for line in gate.stdout:
+            for _ in range(2):
+                try:
+                    conn = conn or socket.create_connection(("127.0.0.1", port), timeout=5)
+                    conn.sendall(line)
+                    break
+                except OSError:
+                    conn = None
+            text = line.decode().strip().split("\t")
+            if len(text) == 3 and text[2] == "1":
+                print(f"  AI: strike ({text[1]})", flush=True)
+    threading.Thread(target=forward, daemon=True).start()
+    return gate
+
+
+def halve(data: bytes) -> bytes:
+    """32 kHz to 16 kHz: the mean of each pair (a gentle low-pass, enough below the app's 1100 Hz)."""
+    x = array.array("h", data[:len(data) // 4 * 4])
+    y = array.array("h", ((x[i] + x[i + 1]) // 2 for i in range(0, len(x), 2)))
+    return y.tobytes()
 
 
 def main():
@@ -147,6 +184,7 @@ def main():
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--light", help="a Home Assistant light entity to colour, e.g. light.wohnzimmer")
     ap.add_argument("--lamp", metavar="URL", help="a screen lamp page instead of a real lamp, e.g. http://127.0.0.1:3310")
+    ap.add_argument("--ai", action="store_true", help="also run the AI sound gate (mic and wav only)")
     ap.add_argument("--port", type=int, default=int(os.environ.get("CHAKRA_FEED_PORT", "8698")))
     ap.add_argument("--wait", action="store_true", help="retry for 2 min until the simulator listens")
     ap.add_argument("--dry-run", action="store_true", help="say what would be sent, connect to nothing")
@@ -184,12 +222,22 @@ def main():
             paced(sock, bowl(float(a.arg), a.seconds))
             paced(sock, silence(2.0))
         else:
-            proc = ffmpeg(["-f", "avfoundation", "-i", ":0"] if a.mode == "mic" else ["-re", "-i", a.arg])
-            print("microphone open, Ctrl-C stops" if a.mode == "mic" else f"playing {a.arg}", flush=True)
+            src = ["-f", "avfoundation", "-i", ":0"] if a.mode == "mic" else ["-re", "-i", a.arg]
+            gate = start_gate(a.port + 1) if a.ai else None
+            proc = ffmpeg(src, AI_RATE if gate else RATE)
+            print(("microphone open, Ctrl-C stops" if a.mode == "mic" else f"playing {a.arg}")
+                  + (" (with the AI sound gate)" if gate else ""), flush=True)
             while True:
-                data = proc.stdout.read(HOP * 2)
+                data = proc.stdout.read(HOP * 2 * (2 if gate else 1))
                 if not data:
                     break
+                if gate:
+                    try:
+                        gate.stdin.write(data)
+                        gate.stdin.flush()
+                    except OSError:
+                        gate = None
+                    data = halve(data)
                 sock.sendall(data)
     except KeyboardInterrupt:
         pass

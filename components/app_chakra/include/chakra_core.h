@@ -57,6 +57,7 @@ typedef struct {
     /* Added 25.10.2026, at the end so a stored blob of the older layout still reads (main.c). */
     int color_mode;    // CHAKRA_COLOR_AUTO (default, 0), CHAKRA_COLOR_CHAKRA or CHAKRA_COLOR_HUE
     int color_value;   // the chakra 0..6, or the hue 0..359
+    int ai;            // 1: the AI sound gate leads (bowls fade softly, strikes kick the light); 0 (default): off
 } chakra_settings_t;
 
 typedef struct chakra_core *chakra_core_handle_t;
@@ -100,6 +101,12 @@ esp_gsp_err_t chakra_core_destroy(chakra_core_handle_t *handle);
 /** Top bar: "H:MM" or "--:--"; dot 0 off, 1 connecting, 2 connected, 3 simulator. UI task only. */
 void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm);
 void chakra_core_set_connection(chakra_core_handle_t c, int state);
+
+/* What the AI sound gate hears now (only used with settings.ai on). A bowl-like sound lets the
+ * detection change the colour for the next AI_HOLD; anything else keeps the colour, and an onset
+ * of it (strike = 1: a gong, a drum) kicks the light brighter for about a second instead. */
+enum { CHAKRA_SOUND_NONE, CHAKRA_SOUND_BOWL, CHAKRA_SOUND_OTHER };
+void chakra_core_set_sound(chakra_core_handle_t c, int kind, int strike);
 /** The lamp list, at most CHAKRA_LAMPS; ticks on unpaired lamps are cleared. UI task only. */
 void chakra_core_set_lamps(chakra_core_handle_t c, const chakra_lamp_t *lamps, int count);
 

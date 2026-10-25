@@ -8,6 +8,8 @@
 // change: light\t<chakra -1..6>\t<RRGGBB>\t<brightness %>\t<transition s>\n, close\n for the hold gesture,
 // and while a chakra is locked, at most twice a second when it changes, the reading for a lamp page:
 // reading\t<chakra>\t<english>\t<german>\t<sanskrit>\t<note+octave>\t<Hz>\t<cents>\t<solfeggio Hz>\t<en|de>\n
+// The AI sound gate's verdicts come in on a second port, CHAKRA_AI_PORT or the audio port + 1,
+// one line each from tools/chakra_feed.py --ai: sound\t<bowl|other|none>\t<strike 0|1>\n.
 // Port: CHAKRA_FEED_PORT or 8698, 127.0.0.1 only, one client at a time. All socket work is
 // non-blocking and runs in the core's 40 ms tick on the bridge's single thread.
 #include <errno.h>
@@ -31,6 +33,9 @@ static struct {
     chakra_core_handle_t core;
     chakra_detect_t *detect;
     int listener, client;
+    int ai_listener, ai_client;
+    char ai_line[64];
+    size_t ai_len;
     uint8_t carry;     // an odd byte left from the last read
     bool has_carry;
     int16_t pcm[CHUNK];
@@ -39,17 +44,15 @@ static struct {
     uint8_t lamps;     // ticked rows, from the last on_settings
     int reaction;
     int lang;          // CHAKRA_LANG_EN or CHAKRA_LANG_DE, for the reading line
-} host = {.listener = -1, .client = -1};
+} host = {.listener = -1, .client = -1, .ai_listener = -1, .ai_client = -1};
 
 static void nonblock(int fd)
 {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
 
-static int listen_loopback(void)
+static int listen_loopback(int port, const char *what)
 {
-    const char *env = getenv("CHAKRA_FEED_PORT");
-    const int port = env ? atoi(env) : 8698;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         return -1;
@@ -64,8 +67,58 @@ static int listen_loopback(void)
         return -1;
     }
     nonblock(fd);
-    fprintf(stderr, "chakra: audio on 127.0.0.1:%d (s16le mono 16 kHz)\n", port);
+    fprintf(stderr, "chakra: %s on 127.0.0.1:%d\n", what, port);
     return fd;
+}
+
+static int feed_port(void)
+{
+    const char *env = getenv("CHAKRA_FEED_PORT");
+    return env ? atoi(env) : 8698;
+}
+
+/* The AI gate's lines: accept one client, read what is there, act on every complete line. */
+static void poll_ai(void)
+{
+    if (host.ai_listener >= 0) {
+        int fd = accept(host.ai_listener, NULL, NULL);
+        if (fd >= 0) {
+            if (host.ai_client >= 0) {
+                close(host.ai_client);
+            }
+            nonblock(fd);
+            host.ai_client = fd;
+            host.ai_len = 0;
+        }
+    }
+    if (host.ai_client < 0) {
+        return;
+    }
+    char buf[256];
+    ssize_t r = read(host.ai_client, buf, sizeof(buf));
+    if (r == 0 || (r < 0 && errno != EAGAIN && errno != EWOULDBLOCK)) {
+        close(host.ai_client);
+        host.ai_client = -1;
+        return;
+    }
+    for (ssize_t i = 0; i < r; ++i) {
+        if (buf[i] != '\n') {
+            if (host.ai_len < sizeof(host.ai_line) - 1) {
+                host.ai_line[host.ai_len++] = buf[i];
+            }
+            continue;
+        }
+        host.ai_line[host.ai_len] = '\0';
+        host.ai_len = 0;
+        char kind[16];
+        int strike = 0;
+        if (sscanf(host.ai_line, "sound\t%15s\t%d", kind, &strike) >= 1) {
+            const int k = strcmp(kind, "bowl") == 0    ? CHAKRA_SOUND_BOWL
+                          : strcmp(kind, "other") == 0 ? CHAKRA_SOUND_OTHER
+                                                       : CHAKRA_SOUND_NONE;
+            chakra_core_set_sound(host.core, k, strike);
+        }
+    }
 }
 
 static void send_text(const char *line)
@@ -169,6 +222,7 @@ static int poll_audio(chakra_reading_t *out, void *ctx)
         last_conn = conn;
         chakra_core_set_connection(host.core, conn);
     }
+    poll_ai();
     if (host.listener >= 0) {
         int fd = accept(host.listener, NULL, NULL);
         if (fd >= 0) {
@@ -228,7 +282,9 @@ static int poll_audio(chakra_reading_t *out, void *ctx)
 
 esp_gsp_err_t gsp_bridge_app_init(esp_gsp_handle_t ui)
 {
-    host.listener = listen_loopback();
+    host.listener = listen_loopback(feed_port(), "audio (s16le mono 16 kHz)");
+    const char *ai_env = getenv("CHAKRA_AI_PORT");
+    host.ai_listener = listen_loopback(ai_env ? atoi(ai_env) : feed_port() + 1, "AI sound gate lines");
     chakra_core_config_t cfg = {.poll = poll_audio, .on_light = on_light, .on_settings = on_settings,
                                 .on_close = on_close, .now_ms = now_ms};
     chakra_settings_defaults(&cfg.settings);
@@ -277,5 +333,11 @@ void gsp_bridge_app_deinit(esp_gsp_handle_t ui)
     }
     if (host.listener >= 0) {
         close(host.listener);
+    }
+    if (host.ai_client >= 0) {
+        close(host.ai_client);
+    }
+    if (host.ai_listener >= 0) {
+        close(host.ai_listener);
     }
 }

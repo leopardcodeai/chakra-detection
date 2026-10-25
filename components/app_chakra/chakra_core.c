@@ -13,6 +13,11 @@
 #define TICK_MS 40
 #define FADE_FLOW 0.06f        // share of the way to the target colour per tick: about 1.6 s
 #define FADE_STRIKE 0.35f      // about 0.3 s
+#define FADE_AI 0.03f          // with the AI gate: about 3 s, the softest of the three
+#define AI_HOLD_TICKS 50       // a bowl verdict lets the colour change for 2 s
+#define KICK_DECAY 0.90f       // the strike kick fades to a tenth in about 0.9 s
+#define KICK_WHITE 0.35f       // how far a full kick pushes the colour towards white
+#define KICK_BRIGHT 40         // and the lamps' brightness up, in percent points
 #define TUNE_STEP 0.25f        // the tuning ring follows a little slower than the reading
 #define SUB_EVERY_TICKS 3      // the note line at most every 120 ms
 #define HOLD_MS 3000
@@ -35,16 +40,17 @@ static const char *const KIND_ICON[] = {"\xf3\xb0\x9f\x90", "\xf3\xb0\x8c\xb5", 
 enum {
     S_READY, S_STRIKE, S_BRIGHT, S_SENS, S_HOLD, S_NOTES, S_NOT_PAIRED,
     S_KIND_HA, S_KIND_HUE, S_KIND_WIZ, S_KIND_BLE, S_KIND_SCREEN, S_HOLD_CLOSE, S_CLOSING, S_BOWLS, S_STRIKE_BOWL,
-    S_HOLD_TONE, S_FLOW, S_STRIKE_MODE, S_SETTINGS, S_CONNECTIONS, S_AUTO, S_COLOUR, S_COUNT
+    S_HOLD_TONE, S_FLOW, S_STRIKE_MODE, S_SETTINGS, S_CONNECTIONS, S_AUTO, S_COLOUR, S_AI, S_OFF, S_ON, S_COUNT
 };
 static const char *const TEXT[2][S_COUNT] = {
     {"Ready", "Strike a bowl or hum", "Brightness", "Sensitivity", "Afterglow", "Notes", "not paired",
      "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Screen lamp", "Hold: close Chakra", "Closing Chakra", "Bowls",
-     "Strike your %s bowl", "hold the tone", "Flow", "Strike", "Settings", "Connections", "Auto", "Colour"},
+     "Strike your %s bowl", "hold the tone", "Flow", "Strike", "Settings", "Connections", "Auto", "Colour",
+     "AI sound gate", "Off", "On"},
     {"Bereit", "Klangschale anschlagen oder summen", "Helligkeit", "Empfindlichkeit", "Nachklang", "Noten",
      "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Bildschirm-Lampe", "Halten: Chakra schließen",
      "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag",
-     "Einstellungen", "Anbindungen", "Auto", "Farbe"},
+     "Einstellungen", "Anbindungen", "Auto", "Farbe", "KI-Klangfilter", "Aus", "An"},
 };
 
 /* The value a setter last sent; see put() below. */
@@ -78,6 +84,9 @@ struct chakra_core {
     uint8_t bars_want[CHAKRA_BARS];  // the last reading's spectrum
     int bar_next;                    // the bar the next spectrum pass starts with
     uint32_t ticks, sub_tick;
+    uint32_t bowl_tick;   // the tick of the AI gate's last bowl verdict (settings.ai)
+    bool bowl_heard;      // whether there was one at all
+    float kick;           // the strike kick now, 1 at a strike, decaying to 0
     chakra_reading_t last;
     int learn;            // bowl being learned 0..6, -1 when not learning
     uint32_t learn_ms;
@@ -307,6 +316,8 @@ static void draw_bars(struct chakra_core *c)
     }
 }
 
+static void light(struct chakra_core *c);
+
 /* Background towards the chakra's colour, tuning ring towards how well the tone sits. */
 static void animate(struct chakra_core *c)
 {
@@ -315,8 +326,16 @@ static void animate(struct chakra_core *c)
     uint32_t rgb = 0;
     for (int i = 0; i < 3; ++i) {
         const float d = t[i] - c->cur[i];
-        c->cur[i] = (d > -1.0f && d < 1.0f) ? t[i] : c->cur[i] + d * (c->s.reaction == CHAKRA_STRIKE ? FADE_STRIKE : FADE_FLOW);
-        rgb = (rgb << 8) | (uint32_t)(c->cur[i] + 0.5f);
+        const float fade = c->s.ai ? FADE_AI : c->s.reaction == CHAKRA_STRIKE ? FADE_STRIKE : FADE_FLOW;
+        c->cur[i] = (d > -1.0f && d < 1.0f) ? t[i] : c->cur[i] + d * fade;
+        const float shown = c->cur[i] + (255.0f - c->cur[i]) * KICK_WHITE * c->kick;  // a strike: towards white
+        rgb = (rgb << 8) | (uint32_t)(shown + 0.5f);
+    }
+    if (c->kick > 0.0f) {
+        c->kick = c->kick < 0.02f ? 0.0f : c->kick * KICK_DECAY;
+        if (c->ticks % 3 == 0 || c->kick == 0.0f) {
+            light(c);  // the lamps take the kick too, at most every third tick
+        }
     }
     if (rgb != c->drawn_rgb && spare(c)) {
         c->drawn_rgb = rgb;
@@ -351,6 +370,9 @@ static void draw_labels(struct chakra_core *c)
     put(c, gsp_chakra_lbl_map_bowls_set_text, T(c, S_BOWLS));
     put(c, gsp_chakra_lbl_react_flow_set_text, T(c, S_FLOW));
     put(c, gsp_chakra_lbl_react_strike_set_text, T(c, S_STRIKE_MODE));
+    put(c, gsp_chakra_lbl_ai_set_text, T(c, S_AI));
+    put(c, gsp_chakra_lbl_ai_off_set_text, T(c, S_OFF));
+    put(c, gsp_chakra_lbl_ai_on_set_text, T(c, S_ON));
 }
 
 static void draw_lamps(struct chakra_core *c)
@@ -456,6 +478,8 @@ static void draw_settings(struct chakra_core *c)
     put(c, gsp_chakra_map_bowls_set_color_rgb888, c->s.map == CHAKRA_MAP_BOWLS ? ON_RGB : OFF_RGB);
     put(c, gsp_chakra_react_flow_set_color_rgb888, c->s.reaction == CHAKRA_FLOW ? ON_RGB : OFF_RGB);
     put(c, gsp_chakra_react_strike_set_color_rgb888, c->s.reaction == CHAKRA_STRIKE ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_ai_off_set_color_rgb888, c->s.ai ? OFF_RGB : ON_RGB);
+    put(c, gsp_chakra_ai_on_set_color_rgb888, c->s.ai ? ON_RGB : OFF_RGB);
     put(c, gsp_chakra_lang_en_set_color_rgb888, c->s.lang == CHAKRA_LANG_EN ? ON_RGB : OFF_RGB);
     put(c, gsp_chakra_lang_de_set_color_rgb888, c->s.lang == CHAKRA_LANG_DE ? ON_RGB : OFF_RGB);
 }
@@ -474,13 +498,15 @@ static void light(struct chakra_core *c)
         return;
     }
     const uint32_t fixed = fixed_rgb(c);
+    int bright = c->s.brightness + (int)((float)KICK_BRIGHT * c->kick + 0.5f);  // a strike kicks it up
+    bright = bright > 100 ? 100 : bright;
     if (fixed) {  // a steady light: its own colour, whatever the detection hears
-        c->cfg.on_light(c->s.color_mode == CHAKRA_COLOR_CHAKRA ? c->s.color_value : CHAKRA_FIXED_HUE, fixed,
-                        c->s.brightness, c->cfg.ctx);
+        c->cfg.on_light(c->s.color_mode == CHAKRA_COLOR_CHAKRA ? c->s.color_value : CHAKRA_FIXED_HUE, fixed, bright,
+                        c->cfg.ctx);
         return;
     }
     const chakra_info_t *info = chakra_info(c->shown);
-    c->cfg.on_light(c->shown, info ? info->rgb : 0, c->s.brightness, c->cfg.ctx);
+    c->cfg.on_light(c->shown, info ? info->rgb : 0, bright, c->cfg.ctx);
 }
 
 /* A new colour choice: the background, the lamps and the settings follow at once. */
@@ -774,6 +800,11 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
         c->s.reaction = gsp_chakra_event_is_react_strike(event) ? CHAKRA_STRIKE : CHAKRA_FLOW;
         settings_changed(c);
         haptic(c, 1);
+    } else if (gsp_chakra_event_is_ai_off(event) || gsp_chakra_event_is_ai_on(event)) {
+        c->s.ai = gsp_chakra_event_is_ai_on(event) ? 1 : 0;
+        c->kick = 0.0f;
+        settings_changed(c);
+        haptic(c, 1);
     } else if (gsp_chakra_event_is_lang_en(event) || gsp_chakra_event_is_lang_de(event)) {
         c->s.lang = gsp_chakra_event_is_lang_de(event) ? CHAKRA_LANG_DE : CHAKRA_LANG_EN;
         draw_labels(c);
@@ -814,7 +845,11 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
             c->sounding = sounding;
             put(c, gsp_chakra_grp_pulse_set_visible, sounding);
         }
-        if (r.chakra != c->shown) {
+        /* With the AI gate, only a bowl-like sound may change the colour: a gong or a drum that
+         * the detection reads as a tone keeps the colour and kicks the light instead. */
+        const bool ai_blocks = c->s.ai && r.chakra >= 0 &&
+                               (!c->bowl_heard || c->ticks - c->bowl_tick > AI_HOLD_TICKS);
+        if (r.chakra != c->shown && !ai_blocks) {
             const bool from_silence = c->shown < 0;
             c->shown = r.chakra;
             draw_chakra(c, r.chakra);
@@ -838,6 +873,20 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
 }
 
 // ------------------------------------------------------------------ public --
+
+void chakra_core_set_sound(chakra_core_handle_t c, int kind, int strike)
+{
+    if (!c || !c->s.ai) {
+        return;
+    }
+    if (kind == CHAKRA_SOUND_BOWL) {
+        c->bowl_tick = c->ticks;
+        c->bowl_heard = true;
+    } else if (kind == CHAKRA_SOUND_OTHER && strike) {
+        c->kick = 1.0f;
+        light(c);
+    }
+}
 
 void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm)
 {
