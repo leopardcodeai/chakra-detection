@@ -1,5 +1,7 @@
 # ChakraA: Chakra Detection
 
+<img src="docs/icon.svg" width="72" align="right" alt="ChakraA icon: a singing bowl with sound waves">
+
 **Strike a singing bowl. The room takes its colour.**
 
 An open-source app for Espressif's [ESP-Mosaico](https://mosaico.espressif.com) (ESP32-S31, 2.16" 480 x 480
