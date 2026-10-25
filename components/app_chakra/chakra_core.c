@@ -84,7 +84,7 @@ struct chakra_core {
     uint8_t bars[CHAKRA_VIEW_BANDS]; // the spectrum window on screen
     uint8_t bars_want[CHAKRA_BARS];  // the last reading's spectrum, all bands
     int bar_next;                    // the bar the next spectrum pass starts with
-    int conn;                        // chakra_core_set_connection's last state, not drawn
+    int conn;                        // chakra_core_set_connection's last state, the Wi-Fi glyph
     int hot_midi;                    // the last locked tone's note (MIDI), for the lit band
     int dot_octave;                  // the spectrum window's octave: the last locked tone's, 3..5
     int lit_band;                    // the band shown in its note's colour, -1 none
@@ -964,10 +964,13 @@ void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm)
 
 void chakra_core_set_connection(chakra_core_handle_t c, int state)
 {
-    /* The top bar's dot is the microphone dot now (DESIGN.md, owner 25.10.2026): the connection is
-     * kept, not drawn; the lamp rows under Connections show what is paired. */
+    /* The connection is the Wi-Fi glyph beside the gear (DESIGN.md, owner 25.10.2026); the dot left
+     * of it is the camera and microphone indicator. wifi-off, wifi-sync, wifi (also the simulator). */
+    static const char *const WIFI[] = {"\xf3\xb0\x96\xaa", "\xf3\xb1\x9b\x87", "\xf3\xb0\x96\xa9",
+                                       "\xf3\xb0\x96\xa9"};
     if (c && state >= 0 && state < 4) {
         c->conn = state;
+        put(c, gsp_chakra_wifi_icon_set_text, WIFI[state]);
     }
 }
 

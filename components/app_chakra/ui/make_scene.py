@@ -34,6 +34,7 @@ NOTE_TO_CHAKRA = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6]  # chakra_detect.c, C .. B
 DOT_NOTES = [0, 2, 4, 5, 7, 9, 11]  # each chakra's dot sits at its natural note, C .. B
 # Material Design Icons 7.4.47: cog, home-assistant, lightbulb, wifi, bluetooth, check-circle, monitor
 COG, HA, BULB, WIFI, BT, CHECK, MONITOR = 0xF0493, 0xF07D0, 0xF0335, 0xF05A9, 0xF00AF, 0xF05E0, 0xF0379
+WIFI_OFF, WIFI_SYNC = 0xF05AA, 0xF16C7  # the connection in the top bar, beside the gear (DESIGN.md)
 ON, OFF, TILE = "#6E5ACF", "#3A3744", "#2C2936"  # DESIGN.md: chosen, not chosen, a lamp row
 LAMPS = 4  # rows in the lamp list; chakra_core.h CHAKRA_LAMPS
 SLIDERS = [("bright", "Brightness", 10, 100, 60), ("hue", "Colour", 0, 359, 0), ("sens", "Sensitivity", 1, 10, 8),
@@ -144,7 +145,7 @@ def scene():
             border_color=WHITE, border_width=2)
         add("container", None, f"grp_dot_on_{i}", x=3, y=3, w=8, h=8, radius=4, bg_color=CHAKRA_RGB[i])
 
-    # Top bar on a dark veil, as in Muse: name left, clock centred, dot and gear right.
+    # Top bar on a dark veil, as in Muse: name left, clock centred, dot, Wi-Fi and gear right.
     add("container", None, None, x=0, y=0, w=480, h=62, bg_color="#000000", bg_opacity=60)
     add("button", "topbar", None, x=0, y=0, w=416, h=62, bg_opacity=0,
         events=[{"event": "press", "action": "call", "target_name": "hold_start"},
@@ -152,8 +153,11 @@ def scene():
     add("label", None, None, x=24, y=10, w=150, h=44, text="ChakraA", font_size=30, font=XBOLD, fg_color=WHITE)
     text("clock", None, 165, 12, 150, 40, 28, BOLD, WHITE, align="center", sample="12:00", overflow="clip")
     # The microphone dot, as iOS shows it (DESIGN.md): orange while the app listens, which it always
-    # does while it runs.
-    add("container", None, None, x=398, y=27, w=10, h=10, radius=5, bg_color=MIC_DOT)
+    # does while it runs. Right of it the connection as a Wi-Fi glyph (chakra_core.c swaps it), then
+    # the gear; ChakraV has the same three in the same spacing.
+    add("container", None, None, x=366, y=26, w=10, h=10, radius=5, bg_color=MIC_DOT)
+    text("wifi_icon", None, 386, 18, 26, 26, 26, ICONS, "#FFFFFFAD", align="center", sample=chr(WIFI_SYNC),
+         charset=ICON_CHARSET, overflow="clip")
     add("button", "gear", None, x=420, y=5, w=52, h=52, radius=26, bg_opacity=0, callback="gear")
     icon("gear", 9, 9, 34, COG)
 
@@ -267,7 +271,7 @@ def main():
     for s in STRINGS:
         chars.update(s)
     (HERE / CHARSET).write_text("".join(sorted(chars)), encoding="utf-8")
-    (HERE / ICON_CHARSET).write_text("".join(chr(c) for c in (COG, HA, BULB, WIFI, BT, CHECK, MONITOR)),
+    (HERE / ICON_CHARSET).write_text("".join(chr(c) for c in (COG, HA, BULB, WIFI, BT, CHECK, MONITOR, WIFI_OFF, WIFI_SYNC)),
                                      encoding="utf-8")
     (HERE / "main.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"main.json: {len(doc['objects'])} objects; charset.txt: {len(chars)} characters")

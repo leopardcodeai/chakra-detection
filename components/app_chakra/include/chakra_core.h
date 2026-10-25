@@ -98,8 +98,8 @@ void chakra_settings_detect(const chakra_settings_t *s, chakra_detect_config_t *
 esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t *config, chakra_core_handle_t *out);
 esp_gsp_err_t chakra_core_destroy(chakra_core_handle_t *handle);
 
-/** Top bar: "H:MM" or "--:--". Connection 0 off, 1 connecting, 2 connected, 3 simulator: kept, not
- *  drawn (the top bar's dot is the microphone dot, DESIGN.md). UI task only. */
+/** Top bar: "H:MM" or "--:--". Connection 0 off, 1 connecting, 2 connected, 3 simulator: the
+ *  Wi-Fi glyph beside the gear (the dot left of it is the camera and microphone indicator, DESIGN.md). UI task only. */
 void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm);
 void chakra_core_set_connection(chakra_core_handle_t c, int state);
 

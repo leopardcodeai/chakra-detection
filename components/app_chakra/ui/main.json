@@ -1564,12 +1564,29 @@
   {
    "type": "container",
    "parent": -1,
-   "x": 398,
-   "y": 27,
+   "x": 366,
+   "y": 26,
    "w": 10,
    "h": 10,
    "radius": 5,
    "bg_color": "#FF9F0A"
+  },
+  {
+   "type": "label",
+   "parent": -1,
+   "name": "wifi_icon",
+   "x": 386,
+   "y": 18,
+   "w": 26,
+   "h": 26,
+   "text": "󱛇",
+   "font_size": 26,
+   "font": "fonts/MaterialDesignIcons.ttf",
+   "fg_color": "#FFFFFFAD",
+   "text_align": "center",
+   "bind": "wifi_icon",
+   "font_charset_file": "icons.txt",
+   "overflow": "clip"
   },
   {
    "type": "button",
