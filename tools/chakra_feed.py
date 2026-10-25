@@ -148,7 +148,11 @@ def ffmpeg(args, rate=RATE):
 
 
 def start_gate(port):
-    """tools/ai_gate.py with its stdout forwarded line by line to the simulator's AI port."""
+    """tools/ai_gate.py with its stdout forwarded line by line to the simulator's AI port; None (and
+    the feeder runs on without it) when the venv is missing."""
+    if not os.path.exists(AI_VENV):
+        print(f"no AI venv at {AI_VENV}: running without the local AI sound gate", flush=True)
+        return None
     gate = subprocess.Popen([AI_VENV, os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_gate.py")],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -224,11 +228,12 @@ def main():
         else:
             src = ["-f", "avfoundation", "-i", ":0"] if a.mode == "mic" else ["-re", "-i", a.arg]
             gate = start_gate(a.port + 1) if a.ai else None
-            proc = ffmpeg(src, AI_RATE if gate else RATE)
+            halving = gate is not None  # the rate stays what ffmpeg was started with, even if the gate dies
+            proc = ffmpeg(src, AI_RATE if halving else RATE)
             print(("microphone open, Ctrl-C stops" if a.mode == "mic" else f"playing {a.arg}")
                   + (" (with the AI sound gate)" if gate else ""), flush=True)
             while True:
-                data = proc.stdout.read(HOP * 2 * (2 if gate else 1))
+                data = proc.stdout.read(HOP * 2 * (2 if halving else 1))
                 if not data:
                     break
                 if gate:
@@ -236,7 +241,8 @@ def main():
                         gate.stdin.write(data)
                         gate.stdin.flush()
                     except OSError:
-                        gate = None
+                        gate = None  # the gate ended: the app goes on with the detection alone
+                if halving:
                     data = halve(data)
                 sock.sendall(data)
     except KeyboardInterrupt:
