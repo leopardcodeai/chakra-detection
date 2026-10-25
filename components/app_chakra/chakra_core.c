@@ -15,6 +15,7 @@
 #define FADE_STRIKE 0.35f      // about 0.3 s
 #define FADE_AI 0.03f          // with the AI gate: about 3 s, the softest of the three
 #define AI_HOLD_TICKS 50       // a bowl verdict lets the colour change for 2 s
+#define GATE_ALIVE_TICKS 125   // no verdict for 5 s: the gate is gone and the detection leads alone again
 #define KICK_DECAY 0.90f       // the strike kick fades to a tenth in about 0.9 s
 #define KICK_WHITE 0.35f       // how far a full kick pushes the colour towards white
 #define KICK_BRIGHT 40         // and the lamps' brightness up, in percent points
@@ -46,11 +47,11 @@ static const char *const TEXT[2][S_COUNT] = {
     {"Ready", "Strike a bowl or hum", "Brightness", "Sensitivity", "Afterglow", "Notes", "not paired",
      "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Screen lamp", "Hold: close Chakra", "Closing Chakra", "Bowls",
      "Strike your %s bowl", "hold the tone", "Flow", "Strike", "Settings", "Connections", "Auto", "Colour",
-     "AI sound gate", "Off", "On"},
+     "Local AI sound gate", "Off", "On"},
     {"Bereit", "Klangschale anschlagen oder summen", "Helligkeit", "Empfindlichkeit", "Nachklang", "Noten",
      "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Bildschirm-Lampe", "Halten: Chakra schließen",
      "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag",
-     "Einstellungen", "Anbindungen", "Auto", "Farbe", "KI-Klangfilter", "Aus", "An"},
+     "Einstellungen", "Anbindungen", "Auto", "Farbe", "Lokaler KI-Klangfilter", "Aus", "An"},
 };
 
 /* The value a setter last sent; see put() below. */
@@ -85,6 +86,8 @@ struct chakra_core {
     int bar_next;                    // the bar the next spectrum pass starts with
     uint32_t ticks, sub_tick;
     uint32_t bowl_tick;   // the tick of the AI gate's last bowl verdict (settings.ai)
+    uint32_t gate_tick;   // the tick of the gate's last verdict of any kind
+    bool gate_heard;      // whether the gate has spoken at all: without it the setting changes nothing
     bool bowl_heard;      // whether there was one at all
     float kick;           // the strike kick now, 1 at a strike, decaying to 0
     int last_shown;       // the last chakra that had a colour: a kick in silence lights that one
@@ -858,7 +861,8 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
         }
         /* With the AI gate, only a bowl-like sound may change the colour: a gong or a drum that
          * the detection reads as a tone keeps the colour and kicks the light instead. */
-        const bool ai_blocks = c->s.ai && r.chakra >= 0 &&
+        const bool gate_live = c->gate_heard && c->ticks - c->gate_tick <= GATE_ALIVE_TICKS;
+        const bool ai_blocks = c->s.ai && gate_live && r.chakra >= 0 &&
                                (!c->bowl_heard || c->ticks - c->bowl_tick > AI_HOLD_TICKS);
         if (r.chakra != c->shown && !ai_blocks) {
             const bool from_silence = c->shown < 0;
@@ -890,7 +894,12 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
 
 void chakra_core_set_sound(chakra_core_handle_t c, int kind, int strike)
 {
-    if (!c || !c->s.ai) {
+    if (!c) {
+        return;
+    }
+    c->gate_tick = c->ticks;
+    c->gate_heard = true;
+    if (!c->s.ai) {
         return;
     }
     if (kind == CHAKRA_SOUND_BOWL) {

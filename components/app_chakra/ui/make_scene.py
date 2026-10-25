@@ -42,7 +42,7 @@ STRINGS = [
     "Muladhara", "Svadhisthana", "Manipura", "Anahata", "Vishuddha", "Ajna", "Sahasrara",
     "Ready", "Strike a bowl or hum", " ct", "+", ".", ",", "Bereit", "Klangschale anschlagen oder summen", "Hz", "dB", "%", " s", " · ",
     "Settings", "Einstellungen", "Connections", "Anbindungen", "Auto", "Colour", "Farbe", "Chakra", "°",
-    "AI sound gate", "KI-Klangfilter", "Off", "On", "Aus", "An",
+    "Local AI sound gate", "Lokaler KI-Klangfilter", "Off", "On", "Aus", "An",
     "Screen lamp", "Bildschirm-Lampe", "localhost", "http://", "LIGHTS", "LICHT", "Brightness", "Helligkeit", "Sensitivity", "Empfindlichkeit", "Afterglow", "Nachklang",
     "Mapping", "Zuordnung", "Notes", "Noten", "Solfeggio", "Bowls", "Schalen", "Strike your", "bowl",
     "-Schale anschlagen", "Hold the tone", "Ton halten", "learned", "angelernt", "/", "Flow", "Strike", "Fließen", "Anschlag", "Language", "Sprache", "English", "Deutsch",
@@ -194,7 +194,7 @@ def scene():
         text(f"lbl_{b}", b, 0, 7, ws[i], 22, 15, BOLD, WHITE, align="center", sample=label if label != "Notes" else "Notes 440")
     # The AI sound gate (chakra_core_set_sound): Off keeps the detection alone, as before; On lets
     # only bowl-like sounds change the colour, fades softly and kicks the light on a strike.
-    text("lbl_ai", "grp_page_set", 24, 381, 260, 22, 16, BOLD, WHITE, sample="AI sound gate", overflow="ellipsis")
+    text("lbl_ai", "grp_page_set", 24, 381, 260, 22, 16, BOLD, WHITE, sample="Local AI sound gate", overflow="ellipsis")
     for j, (b, lab) in enumerate([("ai_off", "Off"), ("ai_on", "On")]):
         add("button", b, "grp_page_set", x=300 + j * 80, y=376, w=76, h=32, radius=16,
             bg_color=ON if j == 0 else OFF, bind=b, bind_target="color", callback=b)
