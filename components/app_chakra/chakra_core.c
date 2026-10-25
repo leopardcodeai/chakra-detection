@@ -87,6 +87,7 @@ struct chakra_core {
     uint32_t bowl_tick;   // the tick of the AI gate's last bowl verdict (settings.ai)
     bool bowl_heard;      // whether there was one at all
     float kick;           // the strike kick now, 1 at a strike, decaying to 0
+    int last_shown;       // the last chakra that had a colour: a kick in silence lights that one
     chakra_reading_t last;
     int learn;            // bowl being learned 0..6, -1 when not learning
     uint32_t learn_ms;
@@ -505,8 +506,18 @@ static void light(struct chakra_core *c)
                         c->cfg.ctx);
         return;
     }
-    const chakra_info_t *info = chakra_info(c->shown);
-    c->cfg.on_light(c->shown, info ? info->rgb : 0, bright, c->cfg.ctx);
+    const int which = c->shown >= 0 ? c->shown : c->kick > 0.0f ? c->last_shown : -1;
+    const chakra_info_t *info = chakra_info(which);
+    uint32_t rgb = info ? info->rgb : 0;
+    if (rgb && c->kick > 0.0f) {  // the lamps go towards white with the kick, as the screen does
+        uint32_t mixed = 0;
+        for (int sh = 16; sh >= 0; sh -= 8) {
+            const float v = (float)((rgb >> sh) & 0xFF);
+            mixed = (mixed << 8) | (uint32_t)(v + (255.0f - v) * KICK_WHITE * c->kick + 0.5f);
+        }
+        rgb = mixed;
+    }
+    c->cfg.on_light(which, rgb, bright, c->cfg.ctx);
 }
 
 /* A new colour choice: the background, the lamps and the settings follow at once. */
@@ -851,6 +862,9 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
                                (!c->bowl_heard || c->ticks - c->bowl_tick > AI_HOLD_TICKS);
         if (r.chakra != c->shown && !ai_blocks) {
             const bool from_silence = c->shown < 0;
+            if (r.chakra >= 0) {
+                c->last_shown = r.chakra;
+            }
             c->shown = r.chakra;
             draw_chakra(c, r.chakra);
             c->sub_tick = c->ticks;
@@ -935,6 +949,7 @@ esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t
     c->ui = ui;
     c->shown = -1;
     c->learn = -1;
+    c->last_shown = -1;
     c->tune_drawn = -1;
     if (config) {
         c->cfg = *config;
