@@ -20,6 +20,7 @@ Pitfalls:
   * A segment often holds two instruments (a bowl ringing while a drum starts); the label is the
     one that leads, and "mixed" segments are best left out of training (label "other").
   * Phone videos are 48 kHz stereo; everything is mixed down to mono here.
+  * iPhone HDR videos are 10-bit: the sheet converts to 8-bit before the JPEG encoder (it refused once).
 Usage:  AI_VENV/bin/python tools/bench/label_own.py [--dry-run]
         AI_VENV/bin/python tools/bench/label_own.py --set IMG_1234.MOV 42 gong
 """
@@ -89,7 +90,7 @@ def sheet(path: Path, segs: list[dict]) -> Path:
     # Tiles left to right, top to bottom, one every SHEET_EVERY s from 0 (Homebrew's ffmpeg has no
     # drawtext without freetype, so the times are the tiles' order; see labels_text()).
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(path), "-vf",
-                    f"fps=1/{SHEET_EVERY:g},scale=320:-2,tile=5x{max(1, -(-len(lab) // 5))}", "-frames:v", "1",
+                    f"fps=1/{SHEET_EVERY:g},scale=320:-2,format=yuvj420p,tile=5x{max(1, -(-len(lab) // 5))}", "-frames:v", "1",
                     "-q:v", "4", str(out)], check=True)
     return out
 
@@ -143,7 +144,10 @@ def main():
                              "db": round(float(db), 1), "checked": False})
         labels += segs
         LABELS.write_text(json.dumps(labels, indent=1))
-        s = sheet(v, segs)
+        try:
+            s = sheet(v, segs)
+        except subprocess.CalledProcessError:
+            s = Path("no sheet (ffmpeg failed)")  # the labels are saved; the next video goes on
         counts = {}
         for g in segs:
             counts[g["label"]] = counts.get(g["label"], 0) + 1
