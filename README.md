@@ -33,7 +33,11 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
   energy on its harmonics and holds its pitch. Drums, rattles, rain sticks and wind chimes in the wind mostly
   leave the colour alone.
 - **Shows it like a tuner.** Chakra name, Sanskrit name, note, frequency to a tenth of a hertz and cents off
-  the note; a ring around the symbol fills the closer the tone sits to its note.
+  the note; a ring around the symbol fills the closer the tone sits to its note. Below, a spectrum with one
+  band a semitone over the octave of the tone that locked and three semitones either side (A2 to D4 for
+  octave 3, the 4096-point FFT's 3.9 Hz bins resolve a semitone there): that tone's band lights in its
+  chakra's colour, and the seven chakra dots sit under the bands of their notes (C root to B crown). The
+  orange dot in the top bar says the microphone listens, as on iOS.
 - **Colours the room.** The whole screen fades to the chakra's colour, so it works without any lamp. Tick
   the lamps that should follow under **Connections**; lamps that are not paired yet are shown greyed.
 - **A screen as the lamp.** The screen lamp (ticked by default) is a page that fills a whole browser window

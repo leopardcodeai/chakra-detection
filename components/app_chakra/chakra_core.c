@@ -81,9 +81,13 @@ struct chakra_core {
     uint32_t drawn_rgb;
     float tune;           // tuning ring now, 0..100
     int tune_drawn;
-    uint8_t bars[CHAKRA_BARS];       // the spectrum on screen
-    uint8_t bars_want[CHAKRA_BARS];  // the last reading's spectrum
+    uint8_t bars[CHAKRA_VIEW_BANDS]; // the spectrum window on screen
+    uint8_t bars_want[CHAKRA_BARS];  // the last reading's spectrum, all bands
     int bar_next;                    // the bar the next spectrum pass starts with
+    int conn;                        // chakra_core_set_connection's last state, not drawn
+    int hot_midi;                    // the last locked tone's note (MIDI), for the lit band
+    int dot_octave;                  // the spectrum window's octave: the last locked tone's, 3..5
+    int lit_band;                    // the band shown in its note's colour, -1 none
     uint32_t ticks, sub_tick;
     uint32_t bowl_tick;   // the tick of the AI gate's last bowl verdict (settings.ai)
     uint32_t gate_tick;   // the tick of the gate's last verdict of any kind
@@ -264,13 +268,13 @@ static void draw_chakra(struct chakra_core *c, int chakra)
         gsp_chakra_grp_sym_0_set_visible, gsp_chakra_grp_sym_1_set_visible, gsp_chakra_grp_sym_2_set_visible,
         gsp_chakra_grp_sym_3_set_visible, gsp_chakra_grp_sym_4_set_visible, gsp_chakra_grp_sym_5_set_visible,
         gsp_chakra_grp_sym_6_set_visible};
-    static esp_gsp_err_t (*const ring[CHAKRA_COUNT])(esp_gsp_handle_t, bool) = {
-        gsp_chakra_grp_ring_0_set_visible, gsp_chakra_grp_ring_1_set_visible, gsp_chakra_grp_ring_2_set_visible,
-        gsp_chakra_grp_ring_3_set_visible, gsp_chakra_grp_ring_4_set_visible, gsp_chakra_grp_ring_5_set_visible,
-        gsp_chakra_grp_ring_6_set_visible};
+    static esp_gsp_err_t (*const dot_on[CHAKRA_COUNT])(esp_gsp_handle_t, bool) = {
+        gsp_chakra_grp_dot_on_0_set_visible, gsp_chakra_grp_dot_on_1_set_visible, gsp_chakra_grp_dot_on_2_set_visible,
+        gsp_chakra_grp_dot_on_3_set_visible, gsp_chakra_grp_dot_on_4_set_visible, gsp_chakra_grp_dot_on_5_set_visible,
+        gsp_chakra_grp_dot_on_6_set_visible};
     for (int i = 0; i < CHAKRA_COUNT; ++i) {
         put(c, sym[i], i == chakra);
-        put(c, ring[i], i == chakra);
+        put(c, dot_on[i], i == chakra);
     }
     put(c, gsp_chakra_grp_sym_idle_set_visible, chakra < 0);
     put(c, gsp_chakra_grp_tune_set_visible, chakra >= 0);
@@ -299,23 +303,58 @@ static void draw_sub(struct chakra_core *c)
     put(c, gsp_chakra_sub_text_set_text, line);
 }
 
+#define BAR_PITCH 16  // ui/make_scene.py BAR_PITCH, BAR_W: a band's step and width in px
+#define BAR_W 11
+
+/* The windows of the octaves 3 to 5 must lie inside the detection's bands. */
+_Static_assert(12 * 4 - 3 >= CHAKRA_BAR_MIDI0 && 12 * 6 - 3 + CHAKRA_VIEW_BANDS <= CHAKRA_BAR_MIDI0 + CHAKRA_BARS,
+               "spectrum window outside chakra_detect.h's bands");
+
+int chakra_core_band_window(chakra_core_handle_t c)
+{
+    return c ? 12 * (c->dot_octave + 1) - 3 : 12 * 4 - 3;
+}
+
+/* The spectrum: the window's neutral bands, the locked tone's band in its note's colour (a second
+ * layer of fixed colour, shown for that band only). The window moves with the dots' octave; the
+ * dots stand still under it. Everything here waits for spare time; unchanged values cost nothing. */
 static void draw_bars(struct chakra_core *c)
 {
-    static esp_gsp_err_t (*const set[CHAKRA_BARS])(esp_gsp_handle_t, int32_t) = {
-        gsp_chakra_bar_0_set_value, gsp_chakra_bar_1_set_value, gsp_chakra_bar_2_set_value,
-        gsp_chakra_bar_3_set_value, gsp_chakra_bar_4_set_value, gsp_chakra_bar_5_set_value,
-        gsp_chakra_bar_6_set_value, gsp_chakra_bar_7_set_value, gsp_chakra_bar_8_set_value,
-        gsp_chakra_bar_9_set_value, gsp_chakra_bar_10_set_value, gsp_chakra_bar_11_set_value,
-        gsp_chakra_bar_12_set_value, gsp_chakra_bar_13_set_value, gsp_chakra_bar_14_set_value,
-        gsp_chakra_bar_15_set_value};
-    const uint8_t *bars = c->bars_want;
-    for (int k = 0; k < CHAKRA_BARS && spare(c); ++k) {
-        const int b = (c->bar_next + k) % CHAKRA_BARS;
+#define BAND_SETTERS(p, s)                                                                                  \
+    {p##0##s, p##1##s, p##2##s, p##3##s, p##4##s, p##5##s, p##6##s, p##7##s, p##8##s, p##9##s, p##10##s,       \
+     p##11##s, p##12##s, p##13##s, p##14##s, p##15##s, p##16##s, p##17##s}
+    static esp_gsp_err_t (*const set[CHAKRA_VIEW_BANDS])(esp_gsp_handle_t, int32_t) =
+        BAND_SETTERS(gsp_chakra_bar_, _set_value);
+    static esp_gsp_err_t (*const hot[CHAKRA_VIEW_BANDS])(esp_gsp_handle_t, int32_t) =
+        BAND_SETTERS(gsp_chakra_hot_, _set_value);
+    static esp_gsp_err_t (*const hot_vis[CHAKRA_VIEW_BANDS])(esp_gsp_handle_t, bool) =
+        BAND_SETTERS(gsp_chakra_grp_hot_, _set_visible);
+#undef BAND_SETTERS
+    const int first = chakra_core_band_window(c);
+    /* The lit band: the locked tone's, while a chakra is shown. Its height first, then the flags. */
+    const int band = c->shown >= 0 ? c->hot_midi - first : -1;
+    const int lit = band >= 0 && band < CHAKRA_VIEW_BANDS ? band : -1;
+    if (lit != c->lit_band) {
+        if (lit >= 0) {
+            put(c, hot[lit], c->bars[lit]);
+            put(c, hot_vis[lit], true);
+        }
+        if (c->lit_band >= 0) {
+            put(c, hot_vis[c->lit_band], false);
+        }
+        c->lit_band = lit;
+    }
+    const uint8_t *bars = c->bars_want + (first - CHAKRA_BAR_MIDI0);
+    for (int k = 0; k < CHAKRA_VIEW_BANDS && spare(c); ++k) {
+        const int b = (c->bar_next + k) % CHAKRA_VIEW_BANDS;
         const int d = (int)bars[b] - (int)c->bars[b];
         if (d >= 2 || d <= -2 || (bars[b] == 0 && c->bars[b] != 0)) {
             c->bars[b] = bars[b];
             put(c, set[b], bars[b]);
-            c->bar_next = (b + 1) % CHAKRA_BARS;
+            if (b == c->lit_band) {
+                put(c, hot[b], bars[b]);
+            }
+            c->bar_next = (b + 1) % CHAKRA_VIEW_BANDS;
         }
     }
 }
@@ -881,6 +920,11 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
             }
         }
         memcpy(c->bars_want, r.bars, sizeof(c->bars_want));
+        if (r.tone && r.chakra >= 0 && r.candidate == r.chakra) {  // the locked tone: its band lights, the dots take its octave
+            c->hot_midi = (r.octave + 1) * 12 + r.note;
+            const int octave = r.octave < 3 ? 3 : r.octave > 5 ? 5 : r.octave;  // the detection's axis: A2 .. D6
+            c->dot_octave = octave;
+        }
     }
     animate(c);
     if (c->shown >= 0 && c->sounding && c->ticks - c->sub_tick >= SUB_EVERY_TICKS && spare(c)) {
@@ -920,9 +964,10 @@ void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm)
 
 void chakra_core_set_connection(chakra_core_handle_t c, int state)
 {
-    static const uint32_t COLOURS[] = {0xFF453A, 0xFF9500, 0x34C759, 0x30B0C7};
+    /* The top bar's dot is the microphone dot now (DESIGN.md, owner 25.10.2026): the connection is
+     * kept, not drawn; the lamp rows under Connections show what is paired. */
     if (c && state >= 0 && state < 4) {
-        put(c, gsp_chakra_conn_dot_set_color_rgb888, COLOURS[state]);
+        c->conn = state;
     }
 }
 
@@ -959,6 +1004,8 @@ esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t
     c->shown = -1;
     c->learn = -1;
     c->last_shown = -1;
+    c->dot_octave = 3;  // until a tone locks: a chakra set's root bowl is often C3
+    c->lit_band = -1;
     c->tune_drawn = -1;
     if (config) {
         c->cfg = *config;

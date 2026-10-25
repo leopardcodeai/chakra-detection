@@ -98,9 +98,17 @@ void chakra_settings_detect(const chakra_settings_t *s, chakra_detect_config_t *
 esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t *config, chakra_core_handle_t *out);
 esp_gsp_err_t chakra_core_destroy(chakra_core_handle_t *handle);
 
-/** Top bar: "H:MM" or "--:--"; dot 0 off, 1 connecting, 2 connected, 3 simulator. UI task only. */
+/** Top bar: "H:MM" or "--:--". Connection 0 off, 1 connecting, 2 connected, 3 simulator: kept, not
+ *  drawn (the top bar's dot is the microphone dot, DESIGN.md). UI task only. */
 void chakra_core_set_clock(chakra_core_handle_t c, const char *hhmm);
 void chakra_core_set_connection(chakra_core_handle_t c, int state);
+
+/* The spectrum on screen: a window of CHAKRA_VIEW_BANDS of the detection's semitone bands, the
+ * octave of the last locked tone (3 until one locks, 3..5) with three semitones either side, so
+ * the chakra dots C .. B always stand under the bands 3, 5, 7, 8, 10, 12 and 14. */
+#define CHAKRA_VIEW_BANDS 18
+/** The MIDI note of the window's first band (A2 = 45 for octave 3); the screen lamp gets the same. */
+int chakra_core_band_window(chakra_core_handle_t c);
 
 /* What the local AI sound gate hears now (only used with settings.ai on). A bowl-like sound lets
  * the detection change the colour for the next 2 s; anything else keeps the colour, and an onset

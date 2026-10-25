@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Host test of chakra_detect.c: synthetic tones in, chakras out. Run with tests/run.sh.
 // Covers each note class at A = 432 Hz across three octaves, a bowl-like tone with
-// inharmonic partials, Solfeggio mode, noise and silence (no chakra), and the hold time.
+// inharmonic partials, Solfeggio mode, noise and silence (no chakra), the hold time, and the
+// spectrum bars (one a semitone, A2 to D6: each note leads its own band, silence lets them fall to zero).
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -159,6 +160,55 @@ int main(void)
         char what[96];
         snprintf(what, sizeof(what), "640 Hz between bowls -> none (got %d)", r.chakra);
         check(r.chakra == -1, what);
+    }
+
+    /* The bars: one band a semitone, A2 .. D6. Each note's own band leads them (also at A = 432 and
+     * for a bowl with inharmonic partials), and silence lets them all fall to zero. */
+    {
+        chakra_detect_config_t bc;
+        chakra_detect_defaults(&bc);  // A = 440
+        chakra_detect_t *bd = chakra_detect_create(&bc);
+        static const float zero[] = {0.0f};
+        for (int pass = 0; pass < 2; ++pass) {
+            if (pass == 1) {
+                bc.a4_hz = 432.0f;
+                chakra_detect_set_config(bd, &bc);
+            }
+            for (int b = 0; b < CHAKRA_BARS; ++b) {
+                const int midi = CHAKRA_BAR_MIDI0 + b;
+                const float f = bc.a4_hz * powf(2.0f, (midi - 69) / 12.0f);
+                play(bd, 1.0f, ONE, zero, 1, 0.0f, 1.5f);
+                static const float quiet[] = {0.01f};  // -43 dBFS: below the bars' top, as a bowl in a room
+                chakra_reading_t r = play(bd, f, ONE, quiet, 1, 0.0005f, 0.6f);
+                int lead = 0;
+                for (int k = 1; k < CHAKRA_BARS; ++k) {
+                    lead = r.bars[k] > r.bars[lead] ? k : lead;
+                }
+                char what[128];
+                snprintf(what, sizeof(what), "bars at A = %.0f: %s%d %.1f Hz leads band %d at %u (got band %d at %u)",
+                         bc.a4_hz, chakra_note_name(midi % 12), midi / 12 - 1, f, b, r.bars[b], lead, r.bars[lead]);
+                check(lead == b && r.bars[b] >= 50, what);
+            }
+        }
+        static const float ratios[] = {1.0f, 2.71f, 5.15f}, amps[] = {0.01f, 0.005f, 0.002f};
+        play(bd, 1.0f, ONE, zero, 1, 0.0f, 1.5f);
+        const float f3 = 432.0f * powf(2.0f, (53 - 69) / 12.0f);
+        chakra_reading_t r = play(bd, f3, ratios, amps, 3, 0.0005f, 0.6f);  // an F3 bowl
+        int lead = 0;
+        for (int k = 1; k < CHAKRA_BARS; ++k) {
+            lead = r.bars[k] > r.bars[lead] ? k : lead;
+        }
+        char what[96];
+        snprintf(what, sizeof(what), "bars: F3 bowl leads band %d (got band %d)", 53 - CHAKRA_BAR_MIDI0, lead);
+        check(lead == 53 - CHAKRA_BAR_MIDI0, what);
+        r = play(bd, 1.0f, ONE, zero, 1, 0.0f, 2.0f);
+        int sum = 0;
+        for (int k = 0; k < CHAKRA_BARS; ++k) {
+            sum += r.bars[k];
+        }
+        snprintf(what, sizeof(what), "bars: silence falls to zero (got sum %d)", sum);
+        check(sum == 0, what);
+        chakra_detect_destroy(bd);
     }
 
     chakra_detect_destroy(d);

@@ -3,7 +3,8 @@
 
 What: the whole screen in one scene. The background takes the chakra's colour, so the display
       itself is the lamp; a dark glass disc holds the chakra's symbol, its name and the note
-      below; 16 spectrum bars and the seven chakra dots sit at the bottom. The gear opens the
+      below; at the bottom a spectrum (one band a semitone, the tone's octave and a little more)
+      with the seven chakra dots under it at their notes' places. The gear opens the
       settings (light targets, brightness, sensitivity, after-glow, note or Solfeggio mapping).
       Holding the top bar 3 s closes the app back to Vibe Mode, as in Muse.
 Why:  owner 24.10.2026: "stylisches Design und Chakra-Visualisierung ... Hintergrund soll die
@@ -23,9 +24,14 @@ HERE = Path(__file__).resolve().parent
 MED, BOLD, XBOLD, ICONS = "fonts/Inter-Medium.ttf", "fonts/Inter-Bold.ttf", "fonts/Inter-ExtraBold.ttf", "fonts/MaterialDesignIcons.ttf"
 CHARSET, ICON_CHARSET = "charset.txt", "icons.txt"
 WHITE, IDLE_BG, INK, ORANGE, SHADOW = "#FFFFFF", "#17141F", "#1C1E1E", "#FF9500", "#E2E2E7"
+MIC_DOT = "#FF9F0A"  # DESIGN.md: Apple's dark-mode orange, the microphone is listening
 CHAKRA_RGB = ["#E0262B", "#F47A1F", "#F2B705", "#2FA84F", "#1E88E5", "#4B3FB5", "#9B3FC8"]
 SYMBOL = 168
-BARS = 16
+BARS = 18  # one band a semitone: the octave of the locked tone with 3 semitones either side (chakra_core.h CHAKRA_VIEW_BANDS)
+BAR_PITCH, BAR_W = 16, 11  # chakra_core.c BAR_PITCH, BAR_W: a band's step and width
+BAND_NOTE0 = 9  # the window starts on an A (A2 for octave 3), so band j is note (9 + j) % 12
+NOTE_TO_CHAKRA = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6]  # chakra_detect.c, C .. B
+DOT_NOTES = [0, 2, 4, 5, 7, 9, 11]  # each chakra's dot sits at its natural note, C .. B
 # Material Design Icons 7.4.47: cog, home-assistant, lightbulb, wifi, bluetooth, check-circle, monitor
 COG, HA, BULB, WIFI, BT, CHECK, MONITOR = 0xF0493, 0xF07D0, 0xF0335, 0xF05A9, 0xF00AF, 0xF05E0, 0xF0379
 ON, OFF, TILE = "#6E5ACF", "#3A3744", "#2C2936"  # DESIGN.md: chosen, not chosen, a lamp row
@@ -110,23 +116,33 @@ def scene():
     text("sub_text", None, 24, 384, 432, 28, 21, BOLD, WHITE, align="center",
          sample="Strike a bowl or hum", overflow="ellipsis")
 
-    # Spectrum: 16 bands, 60 Hz .. 4 kHz (chakra_detect.c).
-    bw, gap = 12, 9
-    x0 = (480 - (BARS * bw + (BARS - 1) * gap)) // 2
+    # The spectrum as an analyser shows it: one band a semitone on a log axis, neutral white, the
+    # octave of the last locked tone with three semitones either side (A2 to D4 for octave 3;
+    # chakra_core.c moves the window). The band of the tone that locked a chakra lights in its
+    # note's colour. Under it the seven chakra dots at their notes' bands, C .. B; the shown
+    # chakra's dot bright and ringed, the others faint. All on a dark glass strip, so the colours read on the background of
+    # the same colour. Fixed colours with only heights, x and visible flags bound (GSP 1.5.1
+    # refuses a bound colour on a container with a dynamic size).
+    pitch, bw, bh, y = BAR_PITCH, BAR_W, 28, 420
+    x0 = (480 - (BARS * pitch - (pitch - bw))) // 2
+    add("container", None, None, x=x0 - 12, y=y - 7, w=BARS * pitch - (pitch - bw) + 24, h=bh + 28, radius=14,
+        bg_color="#000000", bg_opacity=70)
     for b in range(BARS):
-        add("progress", f"bar_{b}", None, x=x0 + b * (bw + gap), y=420, w=bw, h=26, vertical=True,
-            min=0, max=100, value=0, bg_color="#FFFFFF2E", fg_color=WHITE, radius=3)
-
-    # The seven chakras as dots, the current one ringed.
-    d, gap = 12, 20
-    x0 = (480 - (7 * d + 6 * gap)) // 2
+        x = x0 + b * pitch
+        add("progress", f"bar_{b}", None, x=x, y=y, w=bw, h=bh, vertical=True, min=0, max=100, value=0,
+            bg_color="#FFFFFF24", fg_color=WHITE, radius=3)
+        group(f"grp_hot_{b}", None, x, y, bw, bh)
+        add("progress", f"hot_{b}", f"grp_hot_{b}", x=0, y=0, w=bw, h=bh, vertical=True, min=0, max=100, value=0,
+            bg_color="#00000000", fg_color=CHAKRA_RGB[NOTE_TO_CHAKRA[(BAND_NOTE0 + b) % 12]], radius=3)
+    dy = y + bh + 9  # the dots' centre line
     for i in range(7):
-        x = x0 + i * (d + gap)
-        group(f"grp_ring_{i}", None, x - 5, 451, d + 10, d + 10)
-        add("container", None, f"grp_ring_{i}", x=0, y=0, w=d + 10, h=d + 10, radius=(d + 10) // 2,
-            bg_opacity=0, border_color=WHITE, border_width=2)
-        add("container", None, None, x=x, y=456, w=d, h=d, radius=d // 2, bg_color=CHAKRA_RGB[i],
-            border_color=WHITE, border_width=1)
+        b = 12 - BAND_NOTE0 + DOT_NOTES[i]  # the note's band in the window
+        add("container", f"dot_{i}", None, x=x0 + b * pitch + bw // 2 - 7, y=dy - 7, w=14, h=14, bg_opacity=0)
+        add("container", None, f"dot_{i}", x=4, y=4, w=6, h=6, radius=3, bg_color=CHAKRA_RGB[i], bg_opacity=160)
+        group(f"grp_dot_on_{i}", f"dot_{i}", 0, 0, 14, 14)
+        add("container", None, f"grp_dot_on_{i}", x=0, y=0, w=14, h=14, radius=7, bg_opacity=0,
+            border_color=WHITE, border_width=2)
+        add("container", None, f"grp_dot_on_{i}", x=3, y=3, w=8, h=8, radius=4, bg_color=CHAKRA_RGB[i])
 
     # Top bar on a dark veil, as in Muse: name left, clock centred, dot and gear right.
     add("container", None, None, x=0, y=0, w=480, h=62, bg_color="#000000", bg_opacity=60)
@@ -135,8 +151,9 @@ def scene():
                 {"event": "release", "action": "call", "target_name": "hold_end"}])
     add("label", None, None, x=24, y=10, w=150, h=44, text="ChakraA", font_size=30, font=XBOLD, fg_color=WHITE)
     text("clock", None, 165, 12, 150, 40, 28, BOLD, WHITE, align="center", sample="12:00", overflow="clip")
-    add("container", "conn_dot", None, x=396, y=26, w=12, h=12, radius=6, bg_color=ORANGE,
-        bind="conn_dot", bind_target="color")
+    # The microphone dot, as iOS shows it (DESIGN.md): orange while the app listens, which it always
+    # does while it runs.
+    add("container", None, None, x=398, y=27, w=10, h=10, radius=5, bg_color=MIC_DOT)
     add("button", "gear", None, x=420, y=5, w=52, h=52, radius=26, bg_opacity=0, callback="gear")
     icon("gear", 9, 9, 34, COG)
 

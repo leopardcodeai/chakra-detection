@@ -22,7 +22,14 @@ extern "C" {
 #define CHAKRA_FFT 4096
 #define CHAKRA_HOP 1024
 #define CHAKRA_COUNT 7
-#define CHAKRA_BARS 16
+/* The spectrum's axis: one band a semitone, centred on its note (edges +-50 cents, A = a4_hz), from
+ * A2 to D6 (110 to 1175 Hz at A = 440): the octaves 3 to 5 where bowls ring, with three semitones
+ * either side. The screen shows one window of it, the octave of the last locked tone plus those
+ * margins (chakra_core.c). Band b is MIDI note CHAKRA_BAR_MIDI0 + b. The 4096-point FFT has
+ * 3.9 Hz bins; a semitone at A2 is 6.5 Hz, so even the lowest bands hold one or two bins of their
+ * own and a semitone is resolved. */
+#define CHAKRA_BAR_MIDI0 45  // A2
+#define CHAKRA_BARS 42       // A2 .. D6
 
 typedef enum {
     CHAKRA_MAP_NOTES = 0,      // note class of the tone, A = a4_hz
@@ -59,7 +66,8 @@ typedef struct {
     int cents;         // deviation from the note, -50..50
     float level_db;    // dBFS of the hop
     float confidence;  // 0..1
-    uint8_t bars[CHAKRA_BARS];  // 0..100, log bands 60 Hz .. 4 kHz, falling slowly
+    /* 0..100 a band of the axis above (-90..-25 dBFS), rising at once and falling slowly. */
+    uint8_t bars[CHAKRA_BARS];
 } chakra_reading_t;
 
 typedef struct chakra_detect chakra_detect_t;

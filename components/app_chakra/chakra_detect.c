@@ -46,7 +46,7 @@ struct chakra_detect {
     float re[CHAKRA_FFT], im[CHAKRA_FFT];
     float cosv[CHAKRA_FFT / 2], sinv[CHAKRA_FFT / 2];
     float mag[CHAKRA_FFT / 2];
-    uint16_t bands[CHAKRA_BARS + 1];
+    uint16_t bands[CHAKRA_BARS + 1];  // the bands' bin edges, from a4_hz (band_edges)
     float bar[CHAKRA_BARS];
     int locked, cand;
     uint32_t cand_ms, since_seen_ms;
@@ -75,6 +75,17 @@ const char *chakra_note_name(int note)
     return note >= 0 && note < 12 ? NOTES[note] : "";
 }
 
+/* The bands' bin edges: band b runs from 50 cents below its note to 50 cents above, and holds at
+ * least one bin. Again when a4_hz changes. */
+static void band_edges(chakra_detect_t *d)
+{
+    const float a4 = d->cfg.a4_hz > 0.0f ? d->cfg.a4_hz : 440.0f;
+    for (int b = 0; b <= CHAKRA_BARS; ++b) {
+        const float f = a4 * powf(2.0f, ((float)(CHAKRA_BAR_MIDI0 + b) - 69.5f) / 12.0f);
+        d->bands[b] = (uint16_t)ceilf(f / BIN_HZ);
+    }
+}
+
 chakra_detect_t *chakra_detect_create(const chakra_detect_config_t *cfg)
 {
     chakra_detect_t *d = calloc(1, sizeof(*d));
@@ -93,10 +104,7 @@ chakra_detect_t *chakra_detect_create(const chakra_detect_config_t *cfg)
         d->cosv[i] = cosf(2.0f * (float)M_PI * (float)i / CHAKRA_FFT);
         d->sinv[i] = -sinf(2.0f * (float)M_PI * (float)i / CHAKRA_FFT);
     }
-    for (int b = 0; b <= CHAKRA_BARS; ++b) {  // 60 Hz .. 4 kHz, equal steps on a log scale
-        const float f = 60.0f * powf(4000.0f / 60.0f, (float)b / CHAKRA_BARS);
-        d->bands[b] = (uint16_t)(f / BIN_HZ + 0.5f);
-    }
+    band_edges(d);
     d->locked = d->cand = -1;
     d->last.chakra = d->last.candidate = -1;
     d->last.level_db = -120.0f;
@@ -106,7 +114,11 @@ chakra_detect_t *chakra_detect_create(const chakra_detect_config_t *cfg)
 void chakra_detect_set_config(chakra_detect_t *d, const chakra_detect_config_t *cfg)
 {
     if (d && cfg) {
+        const bool retune = cfg->a4_hz != d->cfg.a4_hz;
         d->cfg = *cfg;
+        if (retune) {
+            band_edges(d);
+        }
     }
 }
 
@@ -261,14 +273,16 @@ static void analyse(chakra_detect_t *d)
         d->mag[k] = sqrtf(d->re[k] * d->re[k] + d->im[k] * d->im[k]);
     }
 
-    /* Bars: dB of each band, -90..-25 dBFS onto 0..100, rising at once and falling 5 a hop. */
+    /* Bars: the strongest bin of each band in dB, -90..-25 dBFS onto 0..100, rising at once and
+     * falling 5 a hop. The strongest bin, not the band's sum: near C3 a band holds two bins and the
+     * Hann window spreads a tone over three, so a sum lit the neighbouring semitone as high. */
     const float norm = 2.0f / (CHAKRA_FFT * 0.5f);  // Hann gain 0.5, one-sided spectrum
     for (int b = 0; b < CHAKRA_BARS; ++b) {
-        float e = 0.0f;
+        float m = 0.0f;
         for (int k = d->bands[b]; k < d->bands[b + 1] || k == d->bands[b]; ++k) {
-            e += d->mag[k] * d->mag[k];
+            m = d->mag[k] > m ? d->mag[k] : m;
         }
-        const float db = 10.0f * log10f(e * norm * norm + 1e-12f);
+        const float db = 20.0f * log10f(m * norm + 1e-6f);
         float v = (db + 90.0f) * (100.0f / 65.0f);
         v = v < 0.0f ? 0.0f : v > 100.0f ? 100.0f : v;
         d->bar[b] = v > d->bar[b] ? v : (d->bar[b] > 5.0f ? d->bar[b] - 5.0f : 0.0f);
