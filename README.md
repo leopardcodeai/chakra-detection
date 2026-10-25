@@ -51,9 +51,9 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
   colour. On the Mac it runs EfficientAT (mn05) with a small head trained on freely licensed recordings
   (`tools/ai_gate.py`, `chakra_feed.py mic --ai`); on the board it is meant for the ESP32-S31's AI
   instructions through ESP-DL (mn05 at 8-bit weights and 16-bit activations, about 1.9 MB, estimated 30 to
-  60 ms per second of audio, to be measured when the board is here). First results on 33 recordings:
-  without the gate gongs coloured the room 88 % of the time they sounded, with it 18 %, while bowls kept
-  their colour 86 % of the time (90 % without). Drums, rattles and rain sticks never coloured it either way.
+  60 ms per second of audio, to be measured when the board is here). On 91 recordings (25 October 2026,
+  table below): gongs coloured the room 57 % of the time they sounded without the gate and 21 % with it,
+  voices 46 % and 4 %, while singing bowls kept their colour 83 % of the time (91 % without).
   Nothing leaves the device: no camera, no cloud, no account. Without a gate running the setting changes
   nothing, so the room never stays dark because of it.
 - **Flow or Strike.** Flow (default) waits 0.4 s for a steady tone and fades softly, made for a journey.
@@ -82,6 +82,27 @@ chakra was shown. Results on 24 October 2026, Flow, notes at A = 440 Hz:
 
 From the strike to the colour on the screen: 0.38 s in Flow, 0.13 s in Strike. A lamp adds its own path:
 Hue on the local network is fast, a Wi-Fi bulb through a cloud integration can add a second or two.
+
+**With and without the local AI sound gate** (`tools/bench/gate_bench.py`, 91 Commons recordings, 25 October
+2026): the share of each recording's sounding time that has a colour. mn05 on 2 s windows, the model meant
+for the board; "trained" is a small head on its embedding, tested on recordings it never saw (5-fold by
+recording, 84 % of windows right).
+
+| Sound | Recordings | Should colour | No AI | AI, pretrained | AI, trained |
+|---|---|---|---|---|---|
+| singing bowl | 10 | yes | 91 % | 84 % | 83 % |
+| bell | 18 | yes | 42 % | 28 % | 24 % |
+| tuning fork | 2 | yes | 93 % | 72 % | 56 % |
+| gong | 12 | no | 57 % | 22 % | 21 % |
+| voice | 5 | no | 46 % | 9 % | 4 % |
+| drum | 20 | no | 14 % | 1 % | 1 % |
+| shaker, rain stick | 24 | no | 0 % | 0 % | 0 % |
+
+The gate does what a sound healing room needs from it, gongs, drums and voices mostly stop painting the
+room, at a price: bells lose colour too, and bowls lose a little. Across mn04, mn05 and dymn04 with 0.5, 1 and 2 s
+windows the picture is the same, the numbers spread: bowls keep 72 to 87 %, gongs keep 12 to 34 %, voices
+1 to 20 %; mn04 on 2 s with the trained head drops gongs furthest (12 %) at the same bowl share (84 %).
+22 to 26 ms a window on the Mac's CPU. Two tuning forks are too few to read much into.
 
 The recordings came from Wikimedia Commons (free licences) and were used for testing only; none ships with
 this repository.
