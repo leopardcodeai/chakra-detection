@@ -51,13 +51,15 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
   colour. On the Mac it runs EfficientAT (mn05) with a small head trained on freely licensed recordings
   (`tools/ai_gate.py`, `chakra_feed.py mic --ai`); on the board it is meant for the ESP32-S31's AI
   instructions through ESP-DL (mn05 at 8-bit weights and 16-bit activations, about 1.9 MB, estimated 30 to
-  60 ms per second of audio, to be measured when the board is here). On 91 recordings (25 October 2026,
-  table below): gongs coloured the room 57 % of the time they sounded without the gate and 21 % with it,
+  60 ms per second of audio, to be measured when the board is here). On 91 recordings (26 October 2026,
+  table below): gongs coloured the room 60 % of the time they sounded without the gate and 21 % with it,
   voices 46 % and 4 %, while singing bowls kept their colour 83 % of the time (91 % without).
   Nothing leaves the device: no camera, no cloud, no account. Without a gate running the setting changes
   nothing, so the room never stays dark because of it.
 - **Flow or Strike.** Flow (default) waits 0.4 s for a steady tone and fades softly, made for a journey.
-  Strike reacts in 0.13 s to every strike.
+  Strike reacts in 0.13 s to every strike. In both, a bowl struck while a louder one still rings takes the
+  colour: each strike is found on its own (spectral flux), and its new tone is read with the ringing ones
+  taken off.
 - **Three ways to map a tone to a chakra.** Notes (C root to B crown, A = 440 Hz or 432 Hz), Solfeggio
   (396 to 963 Hz), or **your own bowls**: strike each of your seven bowls once and the app learns them.
 - **English and German**, switched in the settings. Hold the top bar for 3 s to close the app.
@@ -70,30 +72,35 @@ chakra): ![The seven chakra symbols](docs/symbols.png)
 ## Tested against real recordings
 
 `tests/analyse.sh FILE` runs the same detection the board runs over any audio file and prints when which
-chakra was shown. Results on 24 October 2026, Flow, notes at A = 440 Hz:
+chakra was shown. Results on 26 October 2026, notes at A = 440 Hz, Flow unless Strike is named:
 
 | Recording | Result |
 |---|---|
-| 9 single singing bowls, tuning forks, a Japanese rin | each locks one chakra and stays (77 to 99 % of the time) |
-| a 7-bowl chakra tune-up video, root to crown | 6 of 7 by note; its "root" bowl rings at G#3 (210 Hz), so learn your bowls |
-| handpan, kalimba, koshi chimes (melodies) | Flow: 3 to 10 colour changes per piece; Strike follows every note (up to 116) |
-| frame drum, drum cadence, egg shaker, rain sticks, wind chimes | mostly no colour (73 to 100 % silence) |
-| gongs | a clear gong locks; a complex gong wash still wanders between chakras |
+| 7 bowls, C3 to B3, struck one after another with felt about every 1.2 s, the root bowl about three times louder (own recordings: 2 with marked strikes, 4 more rounds) | every strike shows its chakra, in order: 7 of 7 and 5 of 5, in Flow and in Strike; the 4 rounds 6, 6, 6 and 7 of 7 in Flow, 7, 7, 6 and 7 in Strike. Before the strike path the ringing root bowl masked them: Flow 1 of 7 and 1 of 5 (Root alone, for up to 50 s), Strike 2 of 7 and 2 of 5 |
+| 10 single singing bowls with a Japanese rin, 2 tuning forks | 10 of 12 lock one chakra and stay; the main chakra shows 67 to 99 % of the time (as before) |
+| a 7-bowl chakra tune-up video, root to crown (24 October) | 6 of 7 by note; its "root" bowl rings at G#3 (210 Hz), so learn your bowls |
+| handpan, kalimba, koshi chimes, melodies (24 October) | Flow: 3 to 10 colour changes per piece; Strike follows every note (up to 116) |
+| 44 drums, shakers and rain sticks | 40 of 44 mostly without colour (at most 27 % of the time), as before |
+| 12 gongs | a clear gong locks; a complex gong wash still wanders between chakras. Flow colours 51 % of the time (49 % before), 5.0 colour changes a recording (4.8); Strike is calmer, 18 changes (22) |
 
-From the strike to the colour on the screen: 0.38 s in Flow, 0.13 s in Strike. A lamp adds its own path:
-Hue on the local network is fast, a Wi-Fi bulb through a cloud integration can add a second or two.
+From the strike to the colour on the screen: 0.38 s in Flow, 0.13 s in Strike. A bowl struck over a louder
+one that still rings: 0.39 s in Flow, 0.09 s in Strike (mean of 10 such strikes in the marked recordings,
+0.21 to 0.68 s and 0 to 0.25 s; the marks are good to about 0.1 s). A lamp adds its own path: Hue on the
+local network is fast, a Wi-Fi bulb through a cloud integration can add a second or two.
 
 **With and without the local AI sound gate** (`tools/bench/gate_bench.py`, 91 Commons recordings, 25 October
 2026): the share of each recording's sounding time that has a colour. mn05 on 2 s windows, the model meant
 for the board; "trained" is a small head on its embedding, tested on recordings it never saw (5-fold by
-recording, 84 % of windows right).
+recording, 84 % of windows right). Measured again on 26 October with the strike path: only the gongs moved
+(No AI 60 %, 57 % before: two recordings where a gong struck again brings a new clear tone over the
+ringing one), the AI columns stayed the same.
 
 | Sound | Recordings | Should colour | No AI | AI, pretrained | AI, trained |
 |---|---|---|---|---|---|
 | singing bowl | 10 | yes | 91 % | 84 % | 83 % |
 | bell | 18 | yes | 42 % | 28 % | 24 % |
 | tuning fork | 2 | yes | 93 % | 72 % | 56 % |
-| gong | 12 | no | 57 % | 22 % | 21 % |
+| gong | 12 | no | 60 % | 22 % | 21 % |
 | voice | 5 | no | 46 % | 9 % | 4 % |
 | drum | 20 | no | 14 % | 1 % | 1 % |
 | shaker, rain stick | 24 | no | 0 % | 0 % | 0 % |
@@ -155,7 +162,7 @@ the environment and writes them straight to the board.
 
 | Part | File |
 |---|---|
-| Detection: FFT, harmonics, steadiness, mappings, hysteresis, learned bowls | `components/app_chakra/chakra_detect.c` |
+| Detection: FFT, harmonics, steadiness, strikes (spectral flux), mappings, hysteresis, learned bowls | `components/app_chakra/chakra_detect.c` |
 | Screen: colour fades, symbols, tuner ring, settings, learning, hold to close | `components/app_chakra/chakra_core.c`, scene `ui/make_scene.py` |
 | Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, the screen lamp's page (`/lamp`), settings in NVS | `main/main.c` |
 | Simulator side and feeder | `components/app_chakra/host/platform_pc.c`, `tools/chakra_feed.py` |

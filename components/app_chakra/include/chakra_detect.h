@@ -8,6 +8,13 @@
 // the Box-3 generations did), by the nearest Solfeggio frequency, or by the user's own learned bowls. A
 // chakra locks after 256 ms of one reading (640 ms to switch from another, with hysteresis at
 // note boundaries) and is released after `hold_ms` without it.
+//
+// Strikes have a path of their own, so a loud bowl that rings on does not mask the quieter bowls
+// struck after it: the positive spectral flux (100 to 1500 Hz) finds the strike, the spectrum from
+// before it is taken off the spectra after it, and the harmonic sum of what is left names the new
+// tone. Over a tone that still rings, a new one that rose 12 dB, passes the confidence and level
+// gates and holds its pitch for `lock_ms` takes the chakra (Strike 128 ms, Flow 384 ms after it
+// sounds), and holds it while it rings. From silence and for voices the plain reading decides.
 #pragma once
 
 #include <stdbool.h>
@@ -52,7 +59,7 @@ typedef struct {
     chakra_map_t map;
     float a4_hz;         // 440 by default (most bowls are sold by their note at A = 440)
     float bowl_hz[CHAKRA_COUNT];  // CHAKRA_MAP_BOWLS: each chakra's bowl as the app heard it; 0 = none
-    uint32_t lock_ms;    // from silence: this long one steady reading locks a chakra (256)
+    uint32_t lock_ms;    // from silence: this long one steady reading locks a chakra (256); a struck tone too
     uint32_t switch_ms;  // from another chakra (640); Flow uses longer, Strike shorter
 } chakra_detect_config_t;
 
@@ -75,7 +82,7 @@ typedef struct chakra_detect chakra_detect_t;
 /** Defaults for the fields above. */
 void chakra_detect_defaults(chakra_detect_config_t *cfg);
 
-/** NULL on allocation failure (about 120 KB). */
+/** NULL on allocation failure (about 125 KB). */
 chakra_detect_t *chakra_detect_create(const chakra_detect_config_t *cfg);
 void chakra_detect_set_config(chakra_detect_t *d, const chakra_detect_config_t *cfg);
 void chakra_detect_destroy(chakra_detect_t *d);

@@ -2,7 +2,8 @@
 // Host test of chakra_detect.c: synthetic tones in, chakras out. Run with tests/run.sh.
 // Covers each note class at A = 432 Hz across three octaves, a bowl-like tone with
 // inharmonic partials, Solfeggio mode, noise and silence (no chakra), the hold time, and the
-// spectrum bars (one a semitone, A2 to D6: each note leads its own band, silence lets them fall to zero).
+// spectrum bars (one a semitone, A2 to D6: each note leads its own band, silence lets them fall to zero),
+// and a quieter bowl struck over a louder one that still rings (the onset path).
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +49,48 @@ static chakra_reading_t play(chakra_detect_t *d, float f, const float *ratios, c
 }
 
 static const float ONE[] = {1.0f}, AMP1[] = {0.3f};
+
+/* A struck bowl: struck at `start` seconds, its fundamental and second mode (2.71) ringing down
+ * with time constant `tau`, the second mode fading three times faster. */
+typedef struct {
+    float f, amp, start, tau;
+} strike_t;
+
+/* Plays the strikes from t = 0 for `seconds` (plus a little noise, and a 30 ms knock of loud noise
+ * at `knock` seconds unless negative) and returns the chakra shown at each of `at` (seconds,
+ * ascending, n of them) in `shown`. */
+static void play_strikes(chakra_detect_t *d, const strike_t *s, int ns, float knock, float seconds, const float *at,
+                         int *shown, int n)
+{
+    static float buf[CHAKRA_HOP];
+    unsigned seed = 7;
+    chakra_reading_t r = {0};
+    int next = 0;
+    const int hops = (int)(seconds * CHAKRA_RATE / CHAKRA_HOP);
+    for (int h = 0; h < hops; ++h) {
+        for (int i = 0; i < CHAKRA_HOP; ++i) {
+            const double t = (double)(h * CHAKRA_HOP + i) / CHAKRA_RATE;
+            float v = 0.0f;
+            for (int k = 0; k < ns; ++k) {
+                const double u = t - s[k].start;
+                if (u >= 0.0) {
+                    const double attack = u < 0.01 ? u / 0.01 : 1.0;  // a felt mallet: 10 ms to full
+                    v += (float)(attack * s[k].amp * (exp(-u / s[k].tau) * sin(2.0 * M_PI * s[k].f * u) +
+                                                      0.3 * exp(-3.0 * u / s[k].tau) * sin(2.0 * M_PI * 2.71 * s[k].f * u)));
+                }
+            }
+            seed = seed * 1103515245u + 12345u;
+            const float white = (float)((seed >> 8) & 0xFFFF) / 32768.0f - 1.0f;
+            const bool knocking = knock >= 0.0f && t >= knock && t < knock + 0.03;
+            buf[i] = v + (knocking ? 0.3f : 0.002f) * white;
+        }
+        chakra_detect_feed(d, buf, CHAKRA_HOP, &r);
+        const float t_end = (float)((h + 1) * CHAKRA_HOP) / CHAKRA_RATE;
+        while (next < n && t_end >= at[next]) {
+            shown[next++] = r.chakra;
+        }
+    }
+}
 
 int main(void)
 {
@@ -95,7 +138,7 @@ int main(void)
         static const float zero[] = {0.0f};
         play(d, 432.0f, ONE, AMP1, 1, 0.0f, 1.2f);
         chakra_reading_t r = play(d, 1.0f, ONE, zero, 1, 0.0f, 1.0f);
-        check(r.chakra == 5, "still third eye 1.0 s after the tone (hold 1.5 s)");
+        { char w9[64]; snprintf(w9, sizeof(w9), "still third eye 1.0 s after the tone (hold 1.5 s) (got %d)", r.chakra); check(r.chakra == 5, w9); }
         r = play(d, 1.0f, ONE, zero, 1, 0.0f, 0.7f);
         check(r.chakra == -1, "released 1.7 s after the tone");
     }
@@ -114,6 +157,42 @@ int main(void)
         char what[96];
         snprintf(what, sizeof(what), "boundary wobble at 210 Hz -> one chakra (changes %d)", changes);
         check(changes == 1, what);
+    }
+
+    /* A loud C3 bowl rings on and a quieter E3 bowl is struck on top of it (a third of its level):
+     * the strike switches to E (solar plexus) in Flow and in Strike and E stays while it rings,
+     * although C3 still wins the harmonic sum (it held Root for 50 s before the onset path). A knock
+     * (a burst of noise) over the ringing C3 changes nothing. A = 440 Hz, as the owner's bowls. */
+    {
+        static const strike_t BOWLS[] = {{130.81f, 0.3f, 0.5f, 8.0f}, {164.81f, 0.1f, 3.0f, 8.0f}};
+        static const float AT[] = {2.9f, 4.0f, 5.9f};
+        static const char *const MODE[] = {"Flow", "Strike"};
+        for (int m = 0; m < 2; ++m) {
+            chakra_detect_config_t sc;
+            chakra_detect_defaults(&sc);
+            sc.threshold_db = -70.0f;
+            sc.lock_ms = m ? 128u : 384u;  // the app's Flow and Strike (chakra_core.c)
+            sc.switch_ms = m ? 256u : 1500u;
+            chakra_detect_t *sd = chakra_detect_create(&sc);
+            int shown[3];
+            play_strikes(sd, BOWLS, 2, -1.0f, 6.0f, AT, shown, 3);
+            char what[128];
+            snprintf(what, sizeof(what), "%s: loud C3 ringing -> root before the E3 strike (got %d)", MODE[m], shown[0]);
+            check(shown[0] == 0, what);
+            snprintf(what, sizeof(what), "%s: quieter E3 struck over it -> solar plexus within 1 s (got %d)", MODE[m], shown[1]);
+            check(shown[1] == 2, what);
+            snprintf(what, sizeof(what), "%s: E3 still shown 3 s after its strike (got %d)", MODE[m], shown[2]);
+            check(shown[2] == 2, what);
+            chakra_detect_destroy(sd);
+
+            /* The same C3, a 30 ms knock of noise at 3 s instead of the E3 bowl. */
+            sd = chakra_detect_create(&sc);
+            static const float AT2[] = {3.5f, 4.9f};
+            play_strikes(sd, BOWLS, 1, 3.0f, 5.0f, AT2, shown, 2);
+            snprintf(what, sizeof(what), "%s: a knock over the ringing C3 -> still root (got %d, %d)", MODE[m], shown[0], shown[1]);
+            check(shown[0] == 0 && shown[1] == 0, what);
+            chakra_detect_destroy(sd);
+        }
     }
 
     /* Noise alone gives no chakra. */

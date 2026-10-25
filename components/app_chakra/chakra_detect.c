@@ -24,6 +24,36 @@
 #define BOWL_CENTS 150.0f      // bowls: farther than this from every learned bowl is no bowl
 #define HOP_MS ((uint32_t)(1000u * CHAKRA_HOP / CHAKRA_RATE))
 
+/* Strikes (spectral flux). A loud bowl that rings on wins the harmonic sum over every quieter bowl
+ * struck after it (the root bowl, three times louder, held Root for 50 s over six later strikes,
+ * 25.10.2026). So a strike is found on its own: the positive log-spectrum change summed over
+ * 100 .. 1500 Hz jumps over FLUX_RATIO x its running median. The held spectrum from before the
+ * strike (ONSET_BACK hops back, a whole window, so the strike is not in it) is taken off the spectra
+ * after it, twice over (6 dB, for a bowl that still swells), and the harmonic sum of what is left
+ * names the new tone. It counts where it rose ONSET_RISE_DB over what sounded there before, passes
+ * the confidence and level gates, holds its pitch for the lock time, and the tone shown still rings
+ * (over a ringing tone only; from silence and for voices the plain reading stays in charge). It
+ * switches only where the plain reading cannot see it, and then holds the chakra while it rings. */
+#define FLUX_K0 (100 * CHAKRA_FFT / CHAKRA_RATE)   // the flux sums 100 .. 1500 Hz
+#define FLUX_K1 (1500 * CHAKRA_FFT / CHAKRA_RATE)
+#define FLUX_FLOOR 1e-4f       // -80 dBFS: quieter bins count as this, so room noise makes no flux
+#define FLUX_RATIO 3.0f
+#define FLUX_MIN 60.0f         // and at least this (natural-log units, summed): a strike moves many bins
+                               // at once (bowls 95 and up), a gong mode blooming only a few (42)
+#define FLUX_HIST 64           // the median's span, 4 s
+#define ONSET_BACK 4           // hops: the spectrum before the strike, one window earlier
+#define ONSET_GAP_HOPS 8       // strikes at least 0.5 s apart
+#define ONSET_WINDOW_HOPS 14   // the new tone must settle within 0.9 s of the strike
+#define ONSET_RISE_GAIN 2.0f   // the spectrum before, doubled, comes off the one after
+#define ONSET_RISE_DB 12.0f    // the new tone's fundamental this far over what sounded there before
+#define RINGING_DROP_DB 10.0f  // the tone shown still rings: at most this far below where it was
+#define ENV_DECAY_DB 0.5f      // the held spectrum falls 8 dB a second: it bridges a bowl's beats
+#define ALIVE_DB 20.0f         // a struck tone holds its chakra until it fell this far from its peak
+#define PARTIAL_LO 2.5f        // a bowl's second mode over its fundamental, 2.5 .. 3.1
+#define PARTIAL_HI 3.1f
+#define PARTIAL_DB 12.0f       // a fundamental this far under its partial still counts as the tone
+#define ONSET_BINS 1152        // the bins the onset path keeps: up to 4.5 kHz, all harmonics searched
+
 static const chakra_info_t INFO[CHAKRA_COUNT] = {
     {"Root", "Wurzel", "Muladhara", 0xE0262B, 396},
     {"Sacral", "Sakral", "Svadhisthana", 0xF47A1F, 417},
@@ -51,6 +81,22 @@ struct chakra_detect {
     int locked, cand;
     uint32_t cand_ms, since_seen_ms;
     float cand_hz;            // pitch at the start of the current candidate run
+    int locked_bin;           // the locked tone's fundamental bin, -1 when unknown
+    /* The onset path: the last spectra, the flux and its median, the strike being read. */
+    float hist[ONSET_BACK][ONSET_BINS];  // the previous ONSET_BACK spectra, hist_pos the oldest
+    int hist_pos, hist_n;
+    float env[ONSET_BINS];    // the spectrum held at its peaks, falling ENV_DECAY_DB a hop: bowls beat
+    float before[ONSET_BINS];
+    float fresh[ONSET_BINS];  // after minus before: what the strike brought
+    float prev_log[FLUX_K1 + 1];
+    float flux_hist[FLUX_HIST], prev_flux;
+    int flux_n, flux_pos;
+    int since_onset, onset_left;  // hops since the last strike, hops left to read its new tone
+    int run_chakra, run_hops, run_bin;
+    float run_hz, switched_hz;  // the run's last pitch; the pitch this strike switched to, 0 = none yet
+    bool holding;             // a struck tone holds the chakra while it rings (hold_bin, hold_peak)
+    int hold_bin, hold_bin0;
+    float hold_peak;
     chakra_reading_t last;
 };
 
@@ -105,7 +151,8 @@ chakra_detect_t *chakra_detect_create(const chakra_detect_config_t *cfg)
         d->sinv[i] = -sinf(2.0f * (float)M_PI * (float)i / CHAKRA_FFT);
     }
     band_edges(d);
-    d->locked = d->cand = -1;
+    d->locked = d->cand = d->locked_bin = d->run_chakra = -1;
+    d->since_onset = ONSET_GAP_HOPS;
     d->last.chakra = d->last.candidate = -1;
     d->last.level_db = -120.0f;
     return d;
@@ -163,15 +210,78 @@ static void fft(chakra_detect_t *d)
     }
 }
 
-static float band_energy(const chakra_detect_t *d, int centre, int half)
+static float band_energy(const float *m, int limit, int centre, int half)
 {
     float e = 0.0f;
     for (int k = centre - half; k <= centre + half; ++k) {
-        if (k > 0 && k < CHAKRA_FFT / 2) {
-            e += d->mag[k] * d->mag[k];
+        if (k > 0 && k < limit) {
+            e += m[k] * m[k];
         }
     }
     return e;
+}
+
+/* The fundamental of spectrum m (bins 0 .. limit-1): the bin whose harmonics weigh most, -1 if none. */
+static int harmonic_peak(const float *m, int limit)
+{
+    const int kmin = (int)(F_MIN / BIN_HZ), kmax = (int)(F_MAX / BIN_HZ);
+    static const float W[HARMONICS] = {1.0f, 0.5f, 0.33f, 0.25f};
+    int best = -1;
+    float best_score = 0.0f;
+    for (int k = kmin; k <= kmax; ++k) {
+        float s = 0.0f;
+        for (int h = 0; h < HARMONICS && (h + 1) * k < limit; ++h) {
+            s += W[h] * m[(h + 1) * k];
+        }
+        if (s > best_score) {
+            best_score = s;
+            best = k;
+        }
+    }
+    return best > 1 ? best : -1;
+}
+
+/* Parabolic interpolation on log magnitudes around bin k, in Hz. */
+static float peak_hz(const float *m, int k)
+{
+    const float a = logf(m[k - 1] + 1e-9f), b = logf(m[k] + 1e-9f), c = logf(m[k + 1] + 1e-9f);
+    const float den = a - 2.0f * b + c;
+    const float delta = fabsf(den) > 1e-9f ? 0.5f * (a - c) / den : 0.0f;
+    return ((float)k + (delta > 0.5f ? 0.5f : delta < -0.5f ? -0.5f : delta)) * BIN_HZ;
+}
+
+/* Share of the 50 Hz .. 4 kHz energy of m that sits on the harmonics of bin k. */
+static float tone_confidence(const float *m, int limit, int k)
+{
+    float harm = 0.0f;
+    for (int h = 1; h <= HARMONICS && h * k + 2 < limit; ++h) {
+        harm += band_energy(m, limit, h * k, 2);
+    }
+    float total = 0.0f;
+    for (int i = (int)(50.0f / BIN_HZ); i < (int)(4000.0f / BIN_HZ) && i < limit; ++i) {
+        total += m[i] * m[i];
+    }
+    return total > 0.0f ? harm / total : 0.0f;
+}
+
+/* The strongest of bins k-1 .. k+1: a tone's level, whichever bin its pitch sits in. */
+static float near_max(const float *m, int k)
+{
+    float v = m[k];
+    v = m[k - 1] > v ? m[k - 1] : v;
+    return m[k + 1] > v ? m[k + 1] : v;
+}
+
+/* True when f is 2.4 .. 3.2 times ref: a bowl's second mode (or third harmonic) of the tone at ref. */
+static bool is_partial(float f, float ref)
+{
+    return ref > 0.0f && f >= ref * 2.4f && f <= ref * 3.2f;
+}
+
+static int cmp_float(const void *a, const void *b)
+{
+    const float x = *(const float *)a, y = *(const float *)b;
+    return x < y ? -1 : x > y;
 }
 
 /* Cents from f to the nearest octave of c, in -600..600. */
@@ -253,6 +363,158 @@ static bool keeps_locked(const chakra_detect_t *d, float f, int best)
     return to_locked <= to_best + KEEP_CENTS;
 }
 
+#define MAG_NORM (2.0f / (CHAKRA_FFT * 0.5f))  // a bin's magnitude to the amplitude of its tone (Hann 0.5)
+
+/* The magnitude of a bin whose tone sits at db dBFS. */
+static float level_mag(float db)
+{
+    return powf(10.0f, db / 20.0f) / MAG_NORM;
+}
+
+/* True when a strike may hand the chakra on: a chakra is shown and its tone still rings, no more
+ * than RINGING_DROP_DB under where it was before the strike. From silence, and from a shown tone
+ * that stopped (a voice moving to its next note), the plain reading and its calm times stay in
+ * charge: that keeps voices, drums and gong washes as they were. */
+static bool ringing(const chakra_detect_t *d)
+{
+    if (d->locked < 0 || d->locked_bin < 1) {
+        return false;
+    }
+    const float now = near_max(d->mag, d->locked_bin), was = near_max(d->before, d->locked_bin);
+    return now >= level_mag(d->cfg.threshold_db) && now >= was * powf(10.0f, -RINGING_DROP_DB / 20.0f);
+}
+
+/* The onset path, once a hop after the FFT: finds strikes by the spectral flux and reads the tone
+ * each one brought. Returns the chakra to switch to (its bin in *bin), or -1. Keeps the spectrum. */
+static int strike(chakra_detect_t *d, int plain, int *bin)
+{
+    /* The held spectrum: what sounded, a bowl's beat troughs bridged (the spectrum before a strike
+     * is taken from it, so a trough there does not make the old bowl look newly struck). */
+    const float decay = powf(10.0f, -ENV_DECAY_DB / 20.0f);
+    for (int k = 0; k < ONSET_BINS; ++k) {
+        const float held = d->env[k] * decay;
+        d->env[k] = d->mag[k] > held ? d->mag[k] : held;
+    }
+    /* Positive flux of the log spectrum, 100 .. 1500 Hz, against the hop before. */
+    float flux = 0.0f;
+    for (int k = FLUX_K0; k <= FLUX_K1; ++k) {
+        const float l = logf(d->mag[k] * MAG_NORM + FLUX_FLOOR);
+        if (d->hist_n > 0 && l > d->prev_log[k]) {
+            flux += l - d->prev_log[k];
+        }
+        d->prev_log[k] = l;
+    }
+    float median = 0.0f;
+    if (d->flux_n > 0) {
+        float sorted[FLUX_HIST];
+        memcpy(sorted, d->flux_hist, sizeof(float) * (size_t)d->flux_n);
+        qsort(sorted, (size_t)d->flux_n, sizeof(float), cmp_float);
+        median = sorted[d->flux_n / 2];
+    }
+    if (d->hist_n > 0) {
+        d->flux_hist[d->flux_pos] = flux;
+        d->flux_pos = (d->flux_pos + 1) % FLUX_HIST;
+        d->flux_n += d->flux_n < FLUX_HIST;
+    }
+    d->since_onset += d->since_onset < ONSET_GAP_HOPS;
+    if (d->hist_n >= ONSET_BACK && d->flux_n >= 8 && flux > FLUX_RATIO * median && flux > FLUX_MIN &&
+        flux > d->prev_flux && d->since_onset >= ONSET_GAP_HOPS) {
+        /* A strike: the spectrum one window back did not hear it yet. */
+        memcpy(d->before, d->hist[d->hist_pos], sizeof(d->before));
+        d->onset_left = ONSET_WINDOW_HOPS;
+        d->since_onset = 0;
+        d->switched_hz = 0.0f;
+        d->run_chakra = -1;
+        d->run_hops = 0;
+    }
+    d->prev_flux = flux;
+
+    int out = -1;
+    if (d->onset_left > 0) {
+        d->onset_left--;
+        for (int k = 0; k < ONSET_BINS; ++k) {
+            const float v = d->mag[k] - ONSET_RISE_GAIN * d->before[k];
+            d->fresh[k] = v > 0.0f ? v : 0.0f;
+        }
+        int chakra = -1;
+        float f = 0.0f;
+        int k = harmonic_peak(d->fresh, ONSET_BINS);
+        const float rise = powf(10.0f, ONSET_RISE_DB / 20.0f);
+        if (k > 0) {
+            /* A bowl's second mode (2.5 to 3.1 times the fundamental, not a harmonic) often sounds
+             * first and loudest; when its fundamental rose with it, the fundamental is the tone. */
+            const int kmin = (int)(F_MIN / BIN_HZ);
+            int j = (int)((float)k / PARTIAL_HI);
+            j = j < kmin ? kmin : j;
+            int low = -1;
+            for (; (float)j <= (float)k / PARTIAL_LO; ++j) {
+                low = low < 0 || d->fresh[j] > d->fresh[low] ? j : low;
+            }
+            if (low > 1 && d->fresh[low] >= d->fresh[k] * powf(10.0f, -PARTIAL_DB / 20.0f) &&
+                near_max(d->mag, low) >= near_max(d->before, low) * rise) {
+                k = low;
+            }
+        }
+        if (k > 0) {
+            const float now = near_max(d->mag, k), was = near_max(d->before, k);
+            if (now >= level_mag(d->cfg.threshold_db) && now >= was * rise &&
+                tone_confidence(d->fresh, ONSET_BINS, k) >= d->cfg.min_confidence) {
+                chakra_reading_t scratch;
+                f = peak_hz(d->mag, k);
+                chakra = map_freq(d, f, &scratch);
+                /* The second mode of a tone already in play is no new tone: of the one this strike
+                 * brought, or of the bowl shown when that one was struck again (it rose too). */
+                const float shown_hz = d->locked_bin > 0 ? (float)d->locked_bin * BIN_HZ : 0.0f;
+                const bool shown_rose = d->locked_bin > 0 &&
+                                        near_max(d->mag, d->locked_bin) >= near_max(d->before, d->locked_bin) * 1.41f;
+                if (is_partial(f, d->run_chakra >= 0 ? d->run_hz : 0.0f) || is_partial(f, d->switched_hz) ||
+                    (shown_rose && is_partial(f, shown_hz))) {
+                    chakra = -1;
+                }
+                if (chakra >= 0 && keeps_locked(d, f, chakra)) {
+                    chakra = d->locked;
+                }
+                chakra = chakra == d->locked ? -1 : chakra;  // the same chakra struck again: nothing to do
+                /* After this strike switched once, only a lower tone corrects it (a fundamental that
+                 * came after its partial), never the struck bowl's own upper partial. */
+                chakra = d->switched_hz > 0.0f && f > d->switched_hz * 0.75f ? -1 : chakra;
+            }
+        }
+        /* The new tone must hold its pitch for the lock time (Strike 128 ms, Flow 384): a bowl's upper
+         * partial often leads its fundamental by a few hops, and a later steady run corrects it. */
+        if (chakra >= 0 && chakra == d->run_chakra && fabsf(1200.0f * log2f(f / d->run_hz)) <= STEADY_CENTS) {
+            d->run_hops++;
+            d->run_bin = k;
+            d->run_hz = f;  // against the hop before: a swelling bowl's pitch settles over a few hops
+        } else if (chakra >= 0 || d->run_hops < 2) {
+            /* Another tone restarts the run; a hop without a clear new tone pauses a run of two
+             * hops or more (a swelling bowl dips) and ends a single one (a passing partial). */
+            d->run_chakra = chakra;
+            d->run_hops = chakra >= 0;
+            d->run_hz = f;
+            d->run_bin = k;
+        }
+        uint32_t confirm = d->cfg.lock_ms / HOP_MS;
+        confirm = confirm < 2u ? 2u : confirm;
+        /* Only where the plain reading cannot follow: a new tone it has read steadily for as long
+         * switches at its own calm pace (a gong's next note, a melody); one it cannot see, or sees
+         * only now and then under the ringing one, switches here. */
+        const bool plain_follows = plain == d->run_chakra && d->cand == plain && 2u * (d->cand_ms + HOP_MS) >= confirm * HOP_MS;
+        if (d->run_hops >= (int)confirm && !plain_follows && ringing(d)) {
+            out = d->run_chakra;
+            *bin = d->run_bin;
+            d->switched_hz = d->run_hz;
+            d->run_chakra = -1;
+            d->run_hops = 0;
+        }
+    }
+
+    memcpy(d->hist[d->hist_pos], d->env, sizeof(d->hist[0]));
+    d->hist_pos = (d->hist_pos + 1) % ONSET_BACK;
+    d->hist_n += d->hist_n < ONSET_BACK;
+    return out;
+}
+
 static void analyse(chakra_detect_t *d)
 {
     chakra_reading_t *r = &d->last;
@@ -276,7 +538,7 @@ static void analyse(chakra_detect_t *d)
     /* Bars: the strongest bin of each band in dB, -90..-25 dBFS onto 0..100, rising at once and
      * falling 5 a hop. The strongest bin, not the band's sum: near C3 a band holds two bins and the
      * Hann window spreads a tone over three, so a sum lit the neighbouring semitone as high. */
-    const float norm = 2.0f / (CHAKRA_FFT * 0.5f);  // Hann gain 0.5, one-sided spectrum
+    const float norm = MAG_NORM;  // Hann gain 0.5, one-sided spectrum
     for (int b = 0; b < CHAKRA_BARS; ++b) {
         float m = 0.0f;
         for (int k = d->bands[b]; k < d->bands[b + 1] || k == d->bands[b]; ++k) {
@@ -290,44 +552,26 @@ static void analyse(chakra_detect_t *d)
     }
 
     /* Fundamental: the bin whose harmonics weigh most. */
-    const int kmin = (int)(F_MIN / BIN_HZ), kmax = (int)(F_MAX / BIN_HZ);
-    static const float W[HARMONICS] = {1.0f, 0.5f, 0.33f, 0.25f};
-    int best = -1;
-    float best_score = 0.0f;
-    for (int k = kmin; k <= kmax; ++k) {
-        float s = 0.0f;
-        for (int h = 0; h < HARMONICS && (h + 1) * k < CHAKRA_FFT / 2; ++h) {
-            s += W[h] * d->mag[(h + 1) * k];
-        }
-        if (s > best_score) {
-            best_score = s;
-            best = k;
-        }
-    }
-    int candidate = -1;
-    if (best > 1) {
-        /* Parabolic interpolation on log magnitudes. */
-        const float a = logf(d->mag[best - 1] + 1e-9f), b = logf(d->mag[best] + 1e-9f);
-        const float c = logf(d->mag[best + 1] + 1e-9f);
-        const float den = a - 2.0f * b + c;
-        const float delta = fabsf(den) > 1e-9f ? 0.5f * (a - c) / den : 0.0f;
-        const float f = ((float)best + (delta > 0.5f ? 0.5f : delta < -0.5f ? -0.5f : delta)) * BIN_HZ;
+    const int best = harmonic_peak(d->mag, CHAKRA_FFT / 2);
+    int candidate = -1, tone_bin = best;  // tone_bin: the fundamental this hop's reading stands for
+    if (best > 0) {
+        const float f = peak_hz(d->mag, best);
         /* Confidence: share of the 50 Hz .. 4 kHz energy that sits on the tone's harmonics. */
-        float harm = 0.0f;
-        for (int h = 1; h <= HARMONICS && h * best + 2 < CHAKRA_FFT / 2; ++h) {
-            harm += band_energy(d, h * best, 2);
-        }
-        float total = 0.0f;
-        for (int k = (int)(50.0f / BIN_HZ); k < (int)(4000.0f / BIN_HZ); ++k) {
-            total += d->mag[k] * d->mag[k];
-        }
-        r->confidence = total > 0.0f ? harm / total : 0.0f;
+        r->confidence = tone_confidence(d->mag, CHAKRA_FFT / 2, best);
         r->tone = r->level_db >= d->cfg.threshold_db && r->confidence >= d->cfg.min_confidence;
         if (r->tone) {
             r->freq_hz = f;
             candidate = map_freq(d, f, r);
             if (keeps_locked(d, f, candidate)) {
                 candidate = d->locked;
+            } else if (candidate >= 0 && d->locked_bin > 0 && is_partial(f, (float)d->locked_bin * BIN_HZ) &&
+                       near_max(d->mag, d->locked_bin) >= near_max(d->mag, best) * powf(10.0f, -PARTIAL_DB / 20.0f)) {
+                /* The shown bowl's second mode, louder for a moment as the bowl swells or beats, while
+                 * the bowl itself still sounds: still that bowl. */
+                candidate = d->locked;
+                tone_bin = d->locked_bin;
+                r->freq_hz = peak_hz(d->mag, d->locked_bin);
+                map_freq(d, r->freq_hz, r);
             }
         }
     } else {
@@ -335,6 +579,8 @@ static void analyse(chakra_detect_t *d)
         r->tone = false;
     }
     r->candidate = candidate;
+    int strike_bin = -1;
+    const int struck = strike(d, candidate, &strike_bin);
 
     /* Lock after LOCK_MS of the same reading, release after hold_ms without the locked one. */
     /* A run counts only while the pitch stays put: percussion and noise wander, bowls hold. */
@@ -347,15 +593,53 @@ static void analyse(chakra_detect_t *d)
         d->cand_ms = HOP_MS;
         d->cand_hz = candidate >= 0 ? r->freq_hz : 0.0f;
     }
-    if (candidate >= 0 && candidate != d->locked && d->cand_ms >= (d->locked < 0 ? d->cfg.lock_ms : d->cfg.switch_ms)) {
+    /* A strike's new tone takes the chakra at once and holds it while it rings, whatever louder
+     * bowl still covers it; only the next strike, or its fading, hands the chakra on. */
+    if (struck >= 0) {
+        d->locked = struck;
+        d->since_seen_ms = 0;
+        d->holding = true;
+        d->hold_bin = d->hold_bin0 = d->locked_bin = strike_bin;
+        d->hold_peak = near_max(d->mag, strike_bin);
+        d->cand = -1;
+        d->cand_ms = 0;
+        d->cand_hz = 0.0f;
+    } else if (d->holding) {
+        int k = d->hold_bin0;  // the struck tone's bin, or a neighbour as its pitch drifts, never further
+        k = d->mag[k - 1] > d->mag[k] && d->mag[k - 1] >= d->mag[k + 1] ? k - 1 : d->mag[k + 1] > d->mag[k] ? k + 1 : k;
+        d->hold_bin = d->locked_bin = k;
+        const float now = near_max(d->env, k);  // held: a beat trough does not end it
+        d->hold_peak = now > d->hold_peak ? now : d->hold_peak;
+        d->holding = now >= level_mag(d->cfg.threshold_db) && now >= d->hold_peak * powf(10.0f, -ALIVE_DB / 20.0f);
+    }
+    if (d->holding) {
+        if (candidate != d->locked) {  // report the struck tone, not the one that covers it
+            r->freq_hz = peak_hz(d->mag, d->hold_bin);
+            map_freq(d, r->freq_hz, r);
+            r->candidate = d->locked;
+        }
+        /* The struck tone itself, or a steady one that covers it (the louder bowl): it stays. No
+         * clear or no steady tone (a gong wash, a drum roll): the hold time runs as without a strike. */
+        if (candidate == d->locked || (candidate >= 0 && d->cand == candidate && d->cand_ms >= d->cfg.lock_ms)) {
+            d->since_seen_ms = 0;
+        } else {
+            d->since_seen_ms += HOP_MS;
+            if (d->since_seen_ms >= d->cfg.hold_ms) {
+                d->locked = d->locked_bin = r->candidate = -1;
+                d->holding = false;
+            }
+        }
+    } else if (candidate >= 0 && candidate != d->locked && d->cand_ms >= (d->locked < 0 ? d->cfg.lock_ms : d->cfg.switch_ms)) {
         d->locked = candidate;
+        d->locked_bin = tone_bin;
         d->since_seen_ms = 0;
     } else if (d->locked >= 0 && candidate == d->locked) {
+        d->locked_bin = tone_bin;
         d->since_seen_ms = 0;
     } else if (d->locked >= 0) {
         d->since_seen_ms += HOP_MS;
         if (d->since_seen_ms >= d->cfg.hold_ms) {
-            d->locked = -1;
+            d->locked = d->locked_bin = -1;
         }
     }
     r->chakra = d->locked;
