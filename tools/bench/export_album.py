@@ -12,6 +12,7 @@ Privacy: the videos show people at sessions. They go only into the private state
 Pitfalls:
   * The first run asks once whether this app may control Photos (Automation permission).
   * An item still in iCloud takes as long as its download; the timeout per item is 30 minutes.
+  * Photos sometimes returns without writing the file; the line says so, and a rerun fetches it.
   * Photos may name an export differently from the item's filename (an edited item, a HEVC video);
     then the skip check misses it and the file is exported again under the same name, harmlessly.
 Usage:  export_album.py [--album "ChakraV Training"] [--dry-run]
@@ -63,7 +64,10 @@ def main():
         try:
             osa(f'with timeout of 1800 seconds\ntell application "Photos" to export {{media item {i} of {album}}} '
                 f'to (POSIX file {q(str(OUT))}) with using originals\nend timeout', timeout=1900)
-            print(f"{name}: exported", flush=True)
+            # Photos can return without writing the file (seen 25.10.2026 for 2 of 7): say so, a rerun retries.
+            stem = Path(name).stem
+            landed = any(p.stem == stem and p.suffix.lower() != ".aae" for p in OUT.iterdir())
+            print(f"{name}: {'exported' if landed else 'not written by Photos, run again later'}", flush=True)
         except (RuntimeError, subprocess.TimeoutExpired) as e:
             print(f"{name}: failed, {str(e)[:160]}", flush=True)
         if bar:
