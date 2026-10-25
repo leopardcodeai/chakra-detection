@@ -53,6 +53,16 @@ STATE = Path.home() / "Library/Application Support/LeopardCode/chakra"
 CLIPS = STATE / "bench_clips"
 OUT = STATE / "ai_bench/gate_bench.json"
 HEAD = STATE / "ai_models/gate_head_mn05.json"  # read by tools/ai_gate.py
+OWN_LABELS = STATE / "own_media/own_labels.json"  # tools/bench/label_own.py
+OWN_DIRS = [STATE / "own_media/chakrav_training", STATE / "own_media/one"]
+
+
+def seg_label(segs: list[dict], t: float) -> int:
+    """1 for a bowl-like segment (bowl, bell), 0 for anything else, -1 for silence (left out)."""
+    for sg in segs:
+        if sg["start"] <= t < sg["end"]:
+            return -1 if sg["label"] == "silence" else 1 if sg["label"] in ("bowl", "bell") else 0
+    return -1
 MAX_S = 30.0  # longer recordings are cut: the first 30 s say enough and keep the run short
 STEP = 0.1  # timeline resolution in seconds
 BOWL = set(BOWL_CLASSES) | {"Singing bowl", "Ding", "Chime", "Bell", "Tuning fork", "Sine wave"}
@@ -118,6 +128,9 @@ def main():
     ap.add_argument("--models", default="mn04_as,mn05_as,dymn04_as")
     ap.add_argument("--windows", default="0.5,1,2")
     ap.add_argument("--save-head", action="store_true", help="save the mn05 1 s head for tools/ai_gate.py")
+    ap.add_argument("--own", action="store_true",
+                    help="add your own videos (label_own.py's own_labels.json): every window takes its segment's label")
+    ap.add_argument("--only-own", action="store_true", help="your own videos alone, no Commons clips")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     models = a.models.split(",")
@@ -138,6 +151,8 @@ def main():
     bar = progress.Bar("Gate bench", total=len(items) * (1 + len(models) * len(windows)), unit="runs") \
         if progress else None
     base = []
+    if a.only_own:
+        items = []
     for c in items:  # the DSP alone, once per clip
         p = CLIPS / c["file"]
         w16 = decode(p, 16000)
@@ -147,7 +162,21 @@ def main():
         if bar:
             bar.advance()
 
-    results = {"clips": len(items), "models": {}}
+    if a.own or a.only_own:
+        own = json.loads(OWN_LABELS.read_text()) if OWN_LABELS.exists() else []
+        for video in sorted({s["video"] for s in own}):
+            p = next((d / video for d in OWN_DIRS if (d / video).exists()), None)
+            if not p:
+                continue
+            segs = [s for s in own if s["video"] == video]
+            w16 = decode(p, 16000)
+            n = max(1, int(len(w16) / 16000 / STEP))
+            base.append({"clip": f"own/{video}", "class": "own", "expect": "mixed", "n": n, "segments": segs,
+                         "dsp": dsp_timeline(p, n), "sound": sounding(w16, n), "w32": decode(p, eat.RATE)})
+        print(f"own videos: {sum(1 for b in base if b['class'] == 'own')}, "
+              f"segments {len(own)} ({sum(1 for s in own if s.get('checked'))} checked)", flush=True)
+
+    results = {"clips": len(base), "models": {}}
     for m in models:
         model = eat.build(m, get_mn, get_dymn)
         for win in windows:
@@ -169,7 +198,10 @@ def main():
                 gate_pre = probs[:, bowl_i].max(1) >= probs[:, other_i].max(1)
                 per_clip.append({"starts": starts, "pre": gate_pre})
                 feats += embs
-                ys += [1 if b["expect"] == "bowl" else 0] * len(embs)
+                if b["class"] == "own":  # each window takes the label of the segment at its centre
+                    ys += [seg_label(b["segments"], (st + size / 2) / eat.RATE) for st in starts]
+                else:
+                    ys += [1 if b["expect"] == "bowl" else 0] * len(embs)
                 groups += [gi] * len(embs)
                 if bar:
                     bar.advance()
@@ -182,16 +214,19 @@ def main():
             pred = np.zeros(len(y), dtype=bool)
             new_head = lambda: make_pipeline(StandardScaler(), LogisticRegression(  # noqa: E731
                 max_iter=3000, class_weight="balanced", C=0.5))
-            for tr, te in GroupKFold(n_splits=5).split(X, y, g):
+            keep = np.where(y >= 0)[0]  # silent windows of own videos are left out
+            folds = min(5, len(set(g[keep])))
+            for tr, te in GroupKFold(n_splits=folds).split(X[keep], y[keep], g[keep]):
+                tr, te = keep[tr], keep[te]
                 pred[te] = new_head().fit(X[tr], y[tr]).predict(X[te]) == 1
             if a.save_head and m == "mn05_as" and win == 1.0:
                 # The head ai_gate.py uses: trained on every clip (the folds above are its test).
-                full = new_head().fit(X, y)
+                full = new_head().fit(X[keep], y[keep])
                 sc, lr = full[0], full[1]
                 HEAD.write_text(json.dumps({"model": m, "window_s": win, "mean": sc.mean_.tolist(),
                                             "scale": sc.scale_.tolist(), "coef": lr.coef_[0].tolist(),
                                             "intercept": float(lr.intercept_[0]), "clips": len(base),
-                                            "windows": int(len(y))}))
+                                            "windows": int(len(keep))}))
                 print(f"head saved: {HEAD}", flush=True)
             k = 0
             rows = []
@@ -206,12 +241,23 @@ def main():
                 k += len(pc["starts"])
                 snd = b["sound"].sum() or 1
                 share = lambda on: float((on & b["sound"]).sum() / snd)  # noqa: E731
-                rows.append({"clip": b["clip"], "class": b["class"], "expect": b["expect"],
-                             "no_ai": share(b["dsp"]), "ai_pretrained": share(b["dsp"] & gates["pre"]),
-                             "ai_trained": share(b["dsp"] & gates["trained"])})
+                row = {"clip": b["clip"], "class": b["class"], "expect": b["expect"],
+                       "no_ai": share(b["dsp"]), "ai_pretrained": share(b["dsp"] & gates["pre"]),
+                       "ai_trained": share(b["dsp"] & gates["trained"])}
+                if b["class"] == "own":  # the same shares inside the bowl-like and the other segments
+                    t = np.arange(b["n"]) * STEP
+                    lab = np.array([seg_label(b["segments"], x) for x in t])
+                    for part, on_part in (("own_bowl", lab == 1), ("own_other", lab == 0)):
+                        m_ = on_part & b["sound"]
+                        tot = m_.sum()
+                        row[part] = None if not tot else {
+                            k: float((v & m_).sum() / tot) for k, v in
+                            (("no_ai", b["dsp"]), ("ai_pretrained", b["dsp"] & gates["pre"]),
+                             ("ai_trained", b["dsp"] & gates["trained"]))}
+                rows.append(row)
             key = f"{m}@{win:g}s"
             results["models"][key] = {"rows": rows, "ms_per_window": float(np.median(t_ms)),
-                                      "window_accuracy_trained": float((pred == (y == 1)).mean())}
+                                      "window_accuracy_trained": float((pred[keep] == (y[keep] == 1)).mean())}
     if bar:
         bar.done()
     OUT.write_text(json.dumps(results, indent=1))
@@ -221,7 +267,15 @@ def main():
         print(f"\n== {key}  ({r['ms_per_window']:.0f} ms per window on the Mac, trained head "
               f"{100 * r['window_accuracy_trained']:.0f} % of windows right)")
         print(f"   {'class':13} {'lamp should':11} {'n':>3} {'no AI':>7} {'AI pre':>7} {'AI trained':>10}")
+        for part, should in (("own_bowl", "colour"), ("own_other", "no colour")):
+            rs = [x[part] for x in r["rows"] if x.get(part)]
+            if rs:
+                mean = lambda k: 100 * sum(x[k] for x in rs) / len(rs)  # noqa: E731
+                print(f"   {part:13} {should:11} {len(rs):3} {mean('no_ai'):6.0f}% {mean('ai_pretrained'):6.0f}% "
+                      f"{mean('ai_trained'):9.0f}%")
         for c in classes:
+            if c == "own":
+                continue
             rs = [x for x in r["rows"] if x["class"] == c]
             mean = lambda k: 100 * sum(x[k] for x in rs) / len(rs)  # noqa: E731
             print(f"   {c:13} {'colour' if rs[0]['expect'] == 'bowl' else 'no colour':11} {len(rs):3} "
