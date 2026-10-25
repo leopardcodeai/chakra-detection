@@ -22,6 +22,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <time.h>
 
@@ -34,6 +35,7 @@
 #include "esp_crt_bundle.h"
 #include "esp_event.h"
 #include "esp_http_client.h"
+#include "esp_http_server.h"
 #include "esp_iris.h"
 #include "esp_log.h"
 #include "esp_netif.h"
@@ -54,7 +56,8 @@
 static const char *TAG = "chakra_mosaico";
 
 #define NVS_NS "chakra"
-#define SETTINGS_VERSION 2
+#define SETTINGS_VERSION 3  // 3: the screen lamp is row 0 and the colour setting ends the blob
+#define SCREEN_LAMP_PATH "/lamp"
 #define MAX_HA 4
 #define MAX_HUE 16
 #define MAX_WIZ 8
@@ -67,6 +70,13 @@ typedef struct {
     int brightness;
     int transition_ds;
 } light_cmd_t;
+
+typedef struct {
+    unsigned count;
+    int chakra, brightness, transition_ds, note, octave, cents;
+    uint32_t rgb;
+    float hz;
+} screen_state_t;
 
 static struct {
     esp_gsp_handle_t ui;
@@ -93,7 +103,13 @@ static struct {
     bool authed;
     int next_id;
     volatile bool online;
-} app = {.next_id = 1};
+    /* The screen lamp: what its page shows, written by the light task and the UI task, read by
+     * the HTTP server's task, under screen_lock. */
+    portMUX_TYPE screen_lock;
+    screen_state_t screen;
+    httpd_handle_t httpd;
+    volatile bool lamps_dirty;  // a row changed off the UI task (the screen lamp's address)
+} app = {.next_id = 1, .screen_lock = portMUX_INITIALIZER_UNLOCKED, .screen = {.chakra = -1}};
 
 // ------------------------------------------------------------------ settings --
 
@@ -123,6 +139,9 @@ static void load_lamps(void)
 {
     nvs_handle_t h;
     char ha_lights[512] = "", hue_lights[128] = "", wiz[256] = "";
+    /* Row 0, ticked by default: the device's own full-screen colour page; its address follows
+     * once Wi-Fi has an IP (ip_event). */
+    add_row(CHAKRA_LAMP_SCREEN, NULL, true, -1);
     if (nvs_open(NVS_NS, NVS_READONLY, &h) == ESP_OK) {
         nvs_str(h, "ha_url", app.ha_url, sizeof(app.ha_url));
         nvs_str(h, "ha_token", app.ha_token, sizeof(app.ha_token));
@@ -170,8 +189,18 @@ static void load_settings(void)
     if (nvs_open(NVS_NS, NVS_READONLY, &h) == ESP_OK) {
         uint8_t blob[sizeof(chakra_settings_t) + 1];
         size_t len = sizeof(blob);
-        if (nvs_get_blob(h, "settings", blob, &len) == ESP_OK && len == sizeof(blob) && blob[0] == SETTINGS_VERSION) {
-            memcpy(&app.settings, blob + 1, sizeof(chakra_settings_t));
+        /* Version 2 ended before color_mode and had no screen lamp row: its lamp ticks move one
+         * row down, the screen lamp is ticked, the colour stays Auto. */
+        const size_t v2 = 1 + offsetof(chakra_settings_t, color_mode);
+        if (nvs_get_blob(h, "settings", blob, &len) == ESP_OK) {
+            if (len == sizeof(blob) && blob[0] == SETTINGS_VERSION) {
+                memcpy(&app.settings, blob + 1, sizeof(chakra_settings_t));
+            } else if (len == v2 && blob[0] == 2) {
+                memcpy(&app.settings, blob + 1, v2 - 1);
+                app.settings.color_mode = CHAKRA_COLOR_AUTO;
+                app.settings.color_value = 0;
+                app.settings.lamps = (uint8_t)((app.settings.lamps << 1) | 0x01);
+            }
         }
         nvs_close(h);
     }
@@ -263,7 +292,20 @@ static int poll_reading(chakra_reading_t *out, void *ctx)
         last_conn = conn;
         chakra_core_set_connection(app.core, conn);
     }
-    return xQueueReceive(app.readings, out, 0) == pdTRUE;
+    if (app.lamps_dirty) {
+        app.lamps_dirty = false;
+        chakra_core_set_lamps(app.core, app.rows, app.row_count);
+    }
+    const bool got = xQueueReceive(app.readings, out, 0) == pdTRUE;
+    if (got && out->chakra >= 0) {  // the note line of the screen lamp's page
+        portENTER_CRITICAL(&app.screen_lock);
+        app.screen.note = out->note;
+        app.screen.octave = out->octave;
+        app.screen.cents = out->cents;
+        app.screen.hz = out->freq_hz;
+        portEXIT_CRITICAL(&app.screen_lock);
+    }
+    return got;
 }
 
 static void on_light(int chakra, uint32_t rgb, int brightness, void *ctx)
@@ -428,6 +470,15 @@ static void light_task(void *arg)
                     wiz_light(sock, app.wiz_ip[i], &c);
                 }
                 break;
+            case CHAKRA_LAMP_SCREEN:
+                portENTER_CRITICAL(&app.screen_lock);
+                app.screen.count++;
+                app.screen.chakra = c.chakra;
+                app.screen.rgb = c.rgb;
+                app.screen.brightness = c.brightness;
+                app.screen.transition_ds = c.transition_ds;
+                portEXIT_CRITICAL(&app.screen_lock);
+                break;
             default:
                 break;
             }
@@ -507,12 +558,88 @@ static int known_networks(net_t *nets)
     return n;
 }
 
+// ------------------------------------------------------------------ the screen lamp --
+
+/* The page a TV or laptop browser shows in fullscreen: the whole window in the lamp's colour, the
+ * chakra's names and note faint on top (as tools/screen_lamp.py on the Mac, without the symbol). */
+static const char SCREEN_PAGE[] =
+    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" "
+    "content=\"width=device-width,initial-scale=1\"><title>Screen Lamp</title><style>"
+    "html,body{margin:0;height:100%}body{background:#000;cursor:none;overflow:hidden;transition:background-color 1.5s;"
+    "font-family:Inter,-apple-system,Helvetica,Arial,sans-serif;color:#fff}"
+    "#t{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;"
+    "opacity:.2;transition:opacity 1s;text-align:center}#a{font-size:9vmin;font-weight:700}#b{font-size:4.5vmin}"
+    "#c{font-size:3.4vmin;margin-top:2vmin}</style></head><body><div id=\"t\"><div id=\"a\"></div><div id=\"b\">"
+    "</div><div id=\"c\"></div></div><script>"
+    "const S=['Muladhara','Svadhisthana','Manipura','Anahata','Vishuddha','Ajna','Sahasrara'],"
+    "E=['Root','Sacral','Solar plexus','Heart','Throat','Third eye','Crown'],"
+    "N=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];let seen=-1;"
+    "async function p(){try{const s=await(await fetch('/state',{cache:'no-store'})).json();if(s.count!==seen){seen=s.count;"
+    "const k=s.bright/100,c=[16,8,0].map(i=>Math.round((s.rgb>>i&255)*k));"
+    "document.body.style.transitionDuration=s.fade+'s';document.body.style.backgroundColor=`rgb(${c})`;"
+    "document.getElementById('a').textContent=S[s.chakra]||'';document.getElementById('b').textContent=E[s.chakra]||'';}"
+    "document.getElementById('c').textContent=s.chakra>=0&&s.chakra<7&&s.hz>0?"
+    "`${N[s.note]}${s.octave} \u00b7 ${s.hz.toFixed(1)} Hz \u00b7 ${s.cents>0?'+':''}${s.cents} ct`:'';}catch(e){}"
+    "setTimeout(p,250)}document.onclick=()=>document.fullscreenElement?document.exitFullscreen():"
+    "document.documentElement.requestFullscreen();p();</script></body></html>";
+
+static esp_err_t screen_page(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    return httpd_resp_send(req, SCREEN_PAGE, HTTPD_RESP_USE_STRLEN);
+}
+
+static esp_err_t screen_state(httpd_req_t *req)
+{
+    portENTER_CRITICAL(&app.screen_lock);
+    const screen_state_t s = app.screen;
+    portEXIT_CRITICAL(&app.screen_lock);
+    char body[192];
+    snprintf(body, sizeof(body),
+             "{\"count\":%u,\"chakra\":%d,\"rgb\":%lu,\"bright\":%d,\"fade\":%.1f,\"note\":%d,\"octave\":%d,"
+             "\"cents\":%d,\"hz\":%.1f}",
+             s.count, s.chakra, (unsigned long)s.rgb, s.brightness, s.transition_ds / 10.0, s.note, s.octave, s.cents,
+             (double)s.hz);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+}
+
+/* The page at http://<ip>/ and /lamp, its state at /state; read only, nothing on it changes the
+ * device. Started once, at the first IP. */
+static void screen_lamp_start(const esp_ip4_addr_t *ip)
+{
+    if (!app.httpd) {
+        httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
+        cfg.max_open_sockets = 3;
+        if (httpd_start(&app.httpd, &cfg) != ESP_OK) {
+            ESP_LOGW(TAG, "screen lamp: no HTTP server");
+            app.httpd = NULL;
+            return;
+        }
+        static const httpd_uri_t uris[] = {
+            {.uri = "/", .method = HTTP_GET, .handler = screen_page},
+            {.uri = SCREEN_LAMP_PATH, .method = HTTP_GET, .handler = screen_page},
+            {.uri = "/state", .method = HTTP_GET, .handler = screen_state},
+        };
+        for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); ++i) {
+            httpd_register_uri_handler(app.httpd, &uris[i]);
+        }
+    }
+    for (int row = 0; row < app.row_count; ++row) {
+        if (app.rows[row].kind == CHAKRA_LAMP_SCREEN) {
+            snprintf(app.rows[row].url, sizeof(app.rows[row].url), IPSTR SCREEN_LAMP_PATH, IP2STR(ip));
+        }
+    }
+    app.lamps_dirty = true;  // the UI task shows the address (poll_reading)
+}
+
 static void ip_event(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
     (void)arg;
-    (void)data;
     if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         app.online = true;
+        screen_lamp_start(&((const ip_event_got_ip_t *)data)->ip_info.ip);
     } else if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         app.online = false;
         esp_wifi_connect();  // the same network again; the scan happens at boot

@@ -20,7 +20,14 @@ extern "C" {
 
 #define CHAKRA_LAMPS 4  // rows in the settings' lamp list (ui/make_scene.py LAMPS)
 
-typedef enum { CHAKRA_LAMP_HA, CHAKRA_LAMP_HUE, CHAKRA_LAMP_WIZ, CHAKRA_LAMP_BLE } chakra_lamp_kind_t;
+/* CHAKRA_LAMP_SCREEN: a full-screen colour page (a TV or laptop browser in fullscreen is the lamp);
+ * its address stands large on the Connections page. New kinds go at the end: rows keep their kind. */
+typedef enum { CHAKRA_LAMP_HA, CHAKRA_LAMP_HUE, CHAKRA_LAMP_WIZ, CHAKRA_LAMP_BLE, CHAKRA_LAMP_SCREEN } chakra_lamp_kind_t;
+
+/* The light's colour (Settings): Auto follows the chakra; a fixed chakra colour or a fixed hue is
+ * a steady light that the detection does not change. */
+enum { CHAKRA_COLOR_AUTO, CHAKRA_COLOR_CHAKRA, CHAKRA_COLOR_HUE };
+#define CHAKRA_FIXED_HUE 7  // on_light's chakra for a fixed hue (0..6 are the chakras, -1 silence)
 
 enum { CHAKRA_LANG_EN, CHAKRA_LANG_DE };
 
@@ -32,8 +39,9 @@ enum { CHAKRA_FLOW, CHAKRA_STRIKE };
  *  tools/provision.py); an unpaired kind is listed greyed so the user sees what is possible. */
 typedef struct {
     chakra_lamp_kind_t kind;
-    char name[48];   // "Living room LED strip"
+    char name[48];   // "Living room LED strip"; empty: the kind's name
     bool paired;
+    char url[48];    // CHAKRA_LAMP_SCREEN: the page's address as typed, "192.168.1.20:3310"; set by the platform
 } chakra_lamp_t;
 
 typedef struct {
@@ -46,6 +54,9 @@ typedef struct {
     int a4;            // reference pitch for Notes: 440 (default) or 432; a second tap on Notes switches
     int reaction;      // CHAKRA_FLOW (default: steady tones, soft fades) or CHAKRA_STRIKE (each strike, fast)
     float bowl_hz[CHAKRA_COUNT];  // the user's bowls as learned (Bowls in the settings); 0 = not yet
+    /* Added 25.10.2026, at the end so a stored blob of the older layout still reads (main.c). */
+    int color_mode;    // CHAKRA_COLOR_AUTO (default, 0), CHAKRA_COLOR_CHAKRA or CHAKRA_COLOR_HUE
+    int color_value;   // the chakra 0..6, or the hue 0..359
 } chakra_settings_t;
 
 typedef struct chakra_core *chakra_core_handle_t;
@@ -53,7 +64,9 @@ typedef struct chakra_core *chakra_core_handle_t;
 /** A new reading, 1; nothing new, 0. Called on every tick. */
 typedef int (*chakra_poll_cb_t)(chakra_reading_t *out, void *ctx);
 /** The locked chakra changed; -1 is silence after the after-glow (lamps keep their colour then).
- *  The platform sets the lamps ticked in the settings it got last through on_settings. */
+ *  With a fixed colour it comes once per change of colour or brightness, with that colour and the
+ *  chakra 0..6 or CHAKRA_FIXED_HUE. The platform sets the lamps ticked in the settings it got last
+ *  through on_settings. */
 typedef void (*chakra_light_cb_t)(int chakra, uint32_t rgb, int brightness, void *ctx);
 /** The user changed a setting; the platform stores it and applies it to the detection. */
 typedef void (*chakra_settings_cb_t)(const chakra_settings_t *settings, void *ctx);

@@ -27,22 +27,24 @@
 #define DRAW_BUDGET_MS (TICK_MS / 2)  // optional drawing per tick, see spare()
 #define SHADOW_SLOTS 256       // a power of two, about twice the scene's setters
 
-/* Material Design Icons, UTF-8, as in make_scene.py: home-assistant, lightbulb, wifi, bluetooth. */
-static const char *const KIND_ICON[] = {"\xf3\xb0\x9f\x90", "\xf3\xb0\x8c\xb5", "\xf3\xb0\x96\xa9", "\xf3\xb0\x82\xaf"};
+/* Material Design Icons, UTF-8, as in make_scene.py: home-assistant, lightbulb, wifi, bluetooth, monitor. */
+static const char *const KIND_ICON[] = {"\xf3\xb0\x9f\x90", "\xf3\xb0\x8c\xb5", "\xf3\xb0\x96\xa9", "\xf3\xb0\x82\xaf",
+                                        "\xf3\xb0\x8d\xb9"};
 
 /* Every word on the screen, English first (the default), German second. */
 enum {
-    S_READY, S_STRIKE, S_LIGHTS, S_BRIGHT, S_SENS, S_HOLD, S_NOTES, S_NOT_PAIRED,
-    S_KIND_HA, S_KIND_HUE, S_KIND_WIZ, S_KIND_BLE, S_HOLD_CLOSE, S_CLOSING, S_BOWLS, S_STRIKE_BOWL,
-    S_HOLD_TONE, S_FLOW, S_STRIKE_MODE, S_COUNT
+    S_READY, S_STRIKE, S_BRIGHT, S_SENS, S_HOLD, S_NOTES, S_NOT_PAIRED,
+    S_KIND_HA, S_KIND_HUE, S_KIND_WIZ, S_KIND_BLE, S_KIND_SCREEN, S_HOLD_CLOSE, S_CLOSING, S_BOWLS, S_STRIKE_BOWL,
+    S_HOLD_TONE, S_FLOW, S_STRIKE_MODE, S_SETTINGS, S_CONNECTIONS, S_AUTO, S_COLOUR, S_COUNT
 };
 static const char *const TEXT[2][S_COUNT] = {
-    {"Ready", "Strike a bowl or hum", "LIGHTS", "Brightness", "Sensitivity", "Afterglow", "Notes", "not paired",
-     "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Hold: close Chakra", "Closing Chakra", "Bowls",
-     "Strike your %s bowl", "hold the tone", "Flow", "Strike"},
-    {"Bereit", "Klangschale anschlagen oder summen", "LICHT", "Helligkeit", "Empfindlichkeit", "Nachklang", "Noten",
-     "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Halten: Chakra schließen",
-     "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag"},
+    {"Ready", "Strike a bowl or hum", "Brightness", "Sensitivity", "Afterglow", "Notes", "not paired",
+     "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Screen lamp", "Hold: close Chakra", "Closing Chakra", "Bowls",
+     "Strike your %s bowl", "hold the tone", "Flow", "Strike", "Settings", "Connections", "Auto", "Colour"},
+    {"Bereit", "Klangschale anschlagen oder summen", "Helligkeit", "Empfindlichkeit", "Nachklang", "Noten",
+     "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Bildschirm-Lampe", "Halten: Chakra schließen",
+     "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag",
+     "Einstellungen", "Anbindungen", "Auto", "Farbe"},
 };
 
 /* The value a setter last sent; see put() below. */
@@ -64,6 +66,7 @@ struct chakra_core {
     uint32_t tick_start;  // now_ms() when this tick began
     bool hold_shown;
     bool settings_open;
+    int page;             // settings page: 0 Settings, 1 Connections
     int shown;            // chakra on screen, -1 idle
     bool sounding;        // a gated-in tone this hop
     float cur[3];         // background now, 0..255
@@ -220,6 +223,26 @@ void chakra_settings_detect(const chakra_settings_t *s, chakra_detect_config_t *
     out->switch_ms = s->reaction == CHAKRA_STRIKE ? 256u : 1500u;
 }
 
+// ------------------------------------------------------------------ the light's colour --
+
+/* A hue 0..359 at full saturation and value, as 0xRRGGBB. */
+static uint32_t hue_rgb(int hue)
+{
+    hue = ((hue % 360) + 360) % 360;
+    const int x = (hue % 60) * 255 / 60, seg = hue / 60;
+    const int r[6] = {255, 255 - x, 0, 0, x, 255}, g[6] = {x, 255, 255, 255 - x, 0, 0}, b[6] = {0, 0, x, 255, 255, 255 - x};
+    return ((uint32_t)r[seg] << 16) | ((uint32_t)g[seg] << 8) | (uint32_t)b[seg];
+}
+
+/* The fixed colour, or 0 when the colour follows the chakra (Auto). */
+static uint32_t fixed_rgb(const struct chakra_core *c)
+{
+    if (c->s.color_mode == CHAKRA_COLOR_CHAKRA && chakra_info(c->s.color_value)) {
+        return chakra_info(c->s.color_value)->rgb;
+    }
+    return c->s.color_mode == CHAKRA_COLOR_HUE ? hue_rgb(c->s.color_value) : 0;
+}
+
 // ------------------------------------------------------------------ drawing --
 
 static void draw_chakra(struct chakra_core *c, int chakra)
@@ -245,7 +268,8 @@ static void draw_chakra(struct chakra_core *c, int chakra)
     if (!info) {
         put(c, gsp_chakra_sub_text_set_text, T(c, S_STRIKE));
     }
-    c->target_rgb = info ? info->rgb : IDLE_RGB;
+    const uint32_t fixed = fixed_rgb(c);
+    c->target_rgb = fixed ? fixed : info ? info->rgb : IDLE_RGB;
 }
 
 /* The note line, as a tuner shows it: "F#3 · 171.4 Hz · +3 ct" while the tone sounds. */
@@ -313,7 +337,11 @@ static void animate(struct chakra_core *c)
 /* Words that only change with the language. */
 static void draw_labels(struct chakra_core *c)
 {
-    put(c, gsp_chakra_lbl_lights_set_text, T(c, S_LIGHTS));
+    put(c, gsp_chakra_lbl_tab_set_set_text, T(c, S_SETTINGS));
+    put(c, gsp_chakra_lbl_tab_conn_set_text, T(c, S_CONNECTIONS));
+    put(c, gsp_chakra_lbl_col_auto_set_text, T(c, S_AUTO));
+    put(c, gsp_chakra_lbl_hue_set_text, T(c, S_COLOUR));
+    put(c, gsp_chakra_lbl_url_set_text, T(c, S_KIND_SCREEN));
     put(c, gsp_chakra_lbl_bright_set_text, T(c, S_BRIGHT));
     put(c, gsp_chakra_lbl_sens_set_text, T(c, S_SENS));
     put(c, gsp_chakra_lbl_hold_set_text, T(c, S_HOLD));
@@ -348,6 +376,7 @@ static void draw_lamps(struct chakra_core *c)
     static esp_gsp_err_t (*const veil[CHAKRA_LAMPS])(esp_gsp_handle_t, bool) = {
         gsp_chakra_grp_veil_0_set_visible, gsp_chakra_grp_veil_1_set_visible, gsp_chakra_grp_veil_2_set_visible,
         gsp_chakra_grp_veil_3_set_visible};
+    const char *url = NULL;
     for (int i = 0; i < CHAKRA_LAMPS; ++i) {
         const bool used = i < c->lamp_count;
         put(c, row_vis[i], used);
@@ -359,15 +388,55 @@ static void draw_lamps(struct chakra_core *c)
         put(c, row_rgb[i], on ? ON_RGB : ROW_RGB);
         put(c, icon[i], KIND_ICON[l->kind]);
         put(c, name[i], l->name[0] ? l->name : T(c, S_KIND_HA + (int)l->kind));
-        put(c, info[i], l->paired ? T(c, S_KIND_HA + (int)l->kind) : T(c, S_NOT_PAIRED));
+        /* The screen lamp's row names itself; its address stands large in the card below. */
+        put(c, info[i], !l->paired ? T(c, S_NOT_PAIRED) : l->kind == CHAKRA_LAMP_SCREEN ? "" : T(c, S_KIND_HA + (int)l->kind));
         put(c, check[i], on);
         put(c, veil[i], !l->paired);
+        if (l->kind == CHAKRA_LAMP_SCREEN && l->paired && l->url[0] && !url) {
+            url = l->url;
+        }
     }
+    put(c, gsp_chakra_grp_url_set_visible, url != NULL);
+    put(c, gsp_chakra_lamp_url_set_text, url ? url : "");
+}
+
+/* The tabs and the page they show. */
+static void draw_page(struct chakra_core *c)
+{
+    put(c, gsp_chakra_tab_set_set_color_rgb888, c->page == 0 ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_tab_conn_set_color_rgb888, c->page == 1 ? ON_RGB : OFF_RGB);
+    put(c, gsp_chakra_grp_page_set_set_visible, c->page == 0);
+    put(c, gsp_chakra_grp_page_conn_set_visible, c->page == 1);
+}
+
+static void draw_colour(struct chakra_core *c)
+{
+    static esp_gsp_err_t (*const ring[CHAKRA_COUNT])(esp_gsp_handle_t, bool) = {
+        gsp_chakra_grp_col_ring_0_set_visible, gsp_chakra_grp_col_ring_1_set_visible,
+        gsp_chakra_grp_col_ring_2_set_visible, gsp_chakra_grp_col_ring_3_set_visible,
+        gsp_chakra_grp_col_ring_4_set_visible, gsp_chakra_grp_col_ring_5_set_visible,
+        gsp_chakra_grp_col_ring_6_set_visible};
+    const int mode = c->s.color_mode;
+    put(c, gsp_chakra_col_auto_set_color_rgb888, mode == CHAKRA_COLOR_AUTO ? ON_RGB : OFF_RGB);
+    for (int i = 0; i < CHAKRA_COUNT; ++i) {
+        put(c, ring[i], mode == CHAKRA_COLOR_CHAKRA && c->s.color_value == i);
+    }
+    const uint32_t fixed = fixed_rgb(c);
+    put(c, gsp_chakra_hue_swatch_set_color_rgb888, fixed ? fixed : OFF_RGB);  // grey while Auto
+    char v[16];
+    if (mode == CHAKRA_COLOR_HUE) {
+        snprintf(v, sizeof(v), "%d°", c->s.color_value);
+    } else {
+        snprintf(v, sizeof(v), "%s", mode == CHAKRA_COLOR_AUTO ? T(c, S_AUTO) : "");
+    }
+    put(c, gsp_chakra_val_hue_set_text, v);
 }
 
 static void draw_settings(struct chakra_core *c)
 {
+    draw_page(c);
     draw_lamps(c);
+    draw_colour(c);
     char v[24];
     snprintf(v, sizeof(v), "%d %%", c->s.brightness);
     put(c, gsp_chakra_val_bright_set_text, v);
@@ -377,6 +446,9 @@ static void draw_settings(struct chakra_core *c)
     put(c, gsp_chakra_val_hold_set_text, v);
     /* A finger moves the sliders too, so they are never skipped as unchanged. */
     err(c, gsp_chakra_sl_bright_set_value(c->ui, c->s.brightness));
+    if (c->s.color_mode == CHAKRA_COLOR_HUE) {
+        err(c, gsp_chakra_sl_hue_set_value(c->ui, c->s.color_value));
+    }
     err(c, gsp_chakra_sl_sens_set_value(c->ui, c->s.sensitivity));
     err(c, gsp_chakra_sl_hold_set_value(c->ui, c->s.hold_ds));
     put(c, gsp_chakra_map_notes_set_color_rgb888, c->s.map == CHAKRA_MAP_NOTES ? ON_RGB : OFF_RGB);
@@ -398,10 +470,42 @@ static void settings_changed(struct chakra_core *c)
 
 static void light(struct chakra_core *c)
 {
-    const chakra_info_t *info = chakra_info(c->shown);
-    if (c->cfg.on_light) {
-        c->cfg.on_light(c->shown, info ? info->rgb : 0, c->s.brightness, c->cfg.ctx);
+    if (!c->cfg.on_light) {
+        return;
     }
+    const uint32_t fixed = fixed_rgb(c);
+    if (fixed) {  // a steady light: its own colour, whatever the detection hears
+        c->cfg.on_light(c->s.color_mode == CHAKRA_COLOR_CHAKRA ? c->s.color_value : CHAKRA_FIXED_HUE, fixed,
+                        c->s.brightness, c->cfg.ctx);
+        return;
+    }
+    const chakra_info_t *info = chakra_info(c->shown);
+    c->cfg.on_light(c->shown, info ? info->rgb : 0, c->s.brightness, c->cfg.ctx);
+}
+
+/* A new colour choice: the background, the lamps and the settings follow at once. */
+static void colour_changed(struct chakra_core *c)
+{
+    draw_chakra(c, c->shown);
+    draw_colour(c);
+    if (c->cfg.on_settings) {
+        c->cfg.on_settings(&c->s, c->cfg.ctx);
+    }
+    if (fixed_rgb(c) || c->shown >= 0) {
+        light(c);
+    }
+}
+
+static int colour_dot(const esp_gsp_event_t *event)
+{
+    return gsp_chakra_event_is_col_0(event)   ? 0
+           : gsp_chakra_event_is_col_1(event) ? 1
+           : gsp_chakra_event_is_col_2(event) ? 2
+           : gsp_chakra_event_is_col_3(event) ? 3
+           : gsp_chakra_event_is_col_4(event) ? 4
+           : gsp_chakra_event_is_col_5(event) ? 5
+           : gsp_chakra_event_is_col_6(event) ? 6
+                                              : -1;
 }
 
 // ------------------------------------------------------------------ hold to close --
@@ -594,6 +698,7 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
     (void)ui;
     struct chakra_core *c = ctx;
     const int row = lamp_row(event);
+    const int dot = colour_dot(event);
     if (gsp_chakra_event_is_hold_start(event)) {
         hold_start(c);
     } else if (gsp_chakra_event_is_hold_end(event)) {
@@ -609,6 +714,23 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
         }
         put(c, gsp_chakra_grp_settings_set_visible, c->settings_open);
         haptic(c, 1);
+    } else if (gsp_chakra_event_is_tab_set(event) || gsp_chakra_event_is_tab_conn(event)) {
+        c->page = gsp_chakra_event_is_tab_conn(event) ? 1 : 0;
+        draw_page(c);
+        haptic(c, 1);
+    } else if (gsp_chakra_event_is_col_auto(event)) {
+        c->s.color_mode = CHAKRA_COLOR_AUTO;
+        colour_changed(c);
+        haptic(c, 1);
+    } else if (dot >= 0) {
+        c->s.color_mode = CHAKRA_COLOR_CHAKRA;
+        c->s.color_value = dot;
+        colour_changed(c);
+        haptic(c, 1);
+    } else if (gsp_chakra_event_is_sl_hue(event)) {
+        c->s.color_mode = CHAKRA_COLOR_HUE;
+        c->s.color_value = (int)(int32_t)event->arg;
+        colour_changed(c);
     } else if (row >= 0) {
         if (row >= c->lamp_count || !c->lamps[row].paired) {
             return;  // greyed: pair it outside the app first
@@ -616,13 +738,13 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
         c->s.lamps ^= (uint8_t)(1u << row);
         settings_changed(c);
         haptic(c, 1);
-        if (c->shown >= 0) {
+        if (c->shown >= 0 || fixed_rgb(c)) {
             light(c);  // a lamp ticked now joins at once
         }
     } else if (gsp_chakra_event_is_sl_bright(event)) {
         c->s.brightness = (int)(int32_t)event->arg;
         settings_changed(c);
-        if (c->shown >= 0) {
+        if (c->shown >= 0 || fixed_rgb(c)) {
             light(c);
         }
     } else if (gsp_chakra_event_is_sl_sens(event)) {
@@ -701,7 +823,9 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
             if (r.chakra >= 0 && from_silence) {
                 haptic(c, 1);
             }
-            light(c);
+            if (!fixed_rgb(c)) {
+                light(c);  // a fixed colour stays, whatever is heard
+            }
         }
         memcpy(c->bars_want, r.bars, sizeof(c->bars_want));
     }
@@ -744,6 +868,9 @@ void chakra_core_set_lamps(chakra_core_handle_t c, const chakra_lamp_t *lamps, i
         }
     }
     draw_lamps(c);
+    if (fixed_rgb(c)) {
+        light(c);  // a stored steady colour lights the lamps as soon as they are known
+    }
 }
 
 esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t *config, chakra_core_handle_t *out)
@@ -771,6 +898,9 @@ esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t
     c->cur[0] = (IDLE_RGB >> 16) & 0xFF;
     c->cur[1] = (IDLE_RGB >> 8) & 0xFF;
     c->cur[2] = IDLE_RGB & 0xFF;
+    if (c->s.color_mode < CHAKRA_COLOR_AUTO || c->s.color_mode > CHAKRA_COLOR_HUE) {
+        c->s.color_mode = CHAKRA_COLOR_AUTO;  // a blob from before the colour setting, or damaged
+    }
     draw_labels(c);
     draw_chakra(c, -1);
     draw_settings(c);

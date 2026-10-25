@@ -5,14 +5,14 @@
 An open-source app for Espressif's [ESP-Mosaico](https://mosaico.espressif.com) (ESP32-S31, 2.16" 480 x 480
 touch screen, microphone). It hears a singing bowl, a tuning fork or a hummed tone, shows the chakra with its
 symbol, note and frequency, and colours the room: the screen itself turns the chakra's colour, and your lamps
-follow (Philips Hue, Home Assistant, WiZ). Made for sound healing journeys: put it in the middle of the room
+follow (Philips Hue, Home Assistant, WiZ, or any TV or laptop browser as a screen lamp). Made for sound healing journeys: put it in the middle of the room
 and play.
 
 <p align="center"><img src="docs/demo.gif" width="360" alt="The app hearing seven bowls, root to crown: the screen turns red, orange, yellow, green, blue, indigo and violet"></p>
 
-| Ready | A bowl sounds | Crown | Settings |
-|---|---|---|---|
-| ![Ready](docs/screen_ready.png) | ![Heart, F3 at 174.4 Hz](docs/screen_heart.png) | ![Crown, B3](docs/screen_crown.png) | ![Lamps, brightness, sensitivity, Flow or Strike, mapping, language](docs/screen_settings.png) |
+| Ready | A bowl sounds | Crown | Settings | Connections |
+|---|---|---|---|---|
+| ![Ready](docs/screen_ready.png) | ![Heart, F3 at 174.4 Hz](docs/screen_heart.png) | ![Crown, B3](docs/screen_crown.png) | ![Colour Auto or fixed, brightness, sensitivity, Flow or Strike, mapping, language](docs/screen_settings.png) | ![Lamps: the screen lamp ticked with its address, Home Assistant, Hue, Wi-Fi](docs/screen_connections.png) |
 
 ## What it does
 
@@ -22,7 +22,13 @@ and play.
 - **Shows it like a tuner.** Chakra name, Sanskrit name, note, frequency to a tenth of a hertz and cents off
   the note; a ring around the symbol fills the closer the tone sits to its note.
 - **Colours the room.** The whole screen fades to the chakra's colour, so it works without any lamp. Tick
-  the lamps that should follow; lamps that are not paired yet are shown greyed.
+  the lamps that should follow under **Connections**; lamps that are not paired yet are shown greyed.
+- **A screen as the lamp.** The screen lamp (ticked by default) is a page that fills a whole browser window
+  with the colour, the chakra's symbol and names faint on top. Its address stands large under Connections:
+  type it into a TV or laptop browser and go fullscreen. On the board the device serves it itself, at
+  `http://<its address>/lamp`.
+- **Your colour, if you like.** Under **Settings**, Colour: Auto (default) follows the chakra; a tap on one
+  of the seven colours, or the Colour slider for any hue, gives a steady light that the tones do not change.
 - **Flow or Strike.** Flow (default) waits 0.4 s for a steady tone and fades softly, made for a journey.
   Strike reacts in 0.13 s to every strike.
 - **Three ways to map a tone to a chakra.** Notes (C root to B crown, A = 440 Hz or 432 Hz), Solfeggio
@@ -73,7 +79,9 @@ tests/analyse.sh my_bowls.wav   # any recording
 `HA_URL` and `HA_TOKEN` in the environment the simulator also colours that Home Assistant lamp.
 `python3 tools/chakra_feed.py mic --lamp http://127.0.0.1:3310` sends every light command to a screen
 lamp page instead (the protocol line `light\t<chakra>\t<RRGGBB>\t<bright>\t<transition>`, POSTed to
-`/light`), so a screen in fullscreen shows the colours without any real lamp.
+`/light`, with the `reading` lines: names, note, Hz, cents), so a screen in fullscreen shows the colours
+without any real lamp. `CHAKRA_LAMP_URL` sets the address the Connections page shows for it (default
+`127.0.0.1:3310`); with `CHAKRA_LIGHT` set, the Home Assistant row is paired too.
 
 ## On the board
 
@@ -101,7 +109,7 @@ the environment and writes them straight to the board.
 |---|---|
 | Detection: FFT, harmonics, steadiness, mappings, hysteresis, learned bowls | `components/app_chakra/chakra_detect.c` |
 | Screen: colour fades, symbols, tuner ring, settings, learning, hold to close | `components/app_chakra/chakra_core.c`, scene `ui/make_scene.py` |
-| Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, settings in NVS | `main/main.c` |
+| Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, the screen lamp's page (`/lamp`), settings in NVS | `main/main.c` |
 | Simulator side and feeder | `components/app_chakra/host/platform_pc.c`, `tools/chakra_feed.py` |
 | Tests | `tests/test_detect.c`, `tests/analyse_wav.c` |
 

@@ -26,10 +26,12 @@ WHITE, IDLE_BG, INK, ORANGE, SHADOW = "#FFFFFF", "#17141F", "#1C1E1E", "#FF9500"
 CHAKRA_RGB = ["#E0262B", "#F47A1F", "#F2B705", "#2FA84F", "#1E88E5", "#4B3FB5", "#9B3FC8"]
 SYMBOL = 168
 BARS = 16
-# Material Design Icons 7.4.47: cog, home-assistant, lightbulb, wifi, bluetooth, check-circle
-COG, HA, BULB, WIFI, BT, CHECK = 0xF0493, 0xF07D0, 0xF0335, 0xF05A9, 0xF00AF, 0xF05E0
+# Material Design Icons 7.4.47: cog, home-assistant, lightbulb, wifi, bluetooth, check-circle, monitor
+COG, HA, BULB, WIFI, BT, CHECK, MONITOR = 0xF0493, 0xF07D0, 0xF0335, 0xF05A9, 0xF00AF, 0xF05E0, 0xF0379
+ON, OFF, TILE = "#6E5ACF", "#3A3744", "#2C2936"  # DESIGN.md: chosen, not chosen, a lamp row
 LAMPS = 4  # rows in the lamp list; chakra_core.h CHAKRA_LAMPS
-SLIDERS = [("bright", "Brightness", 10, 100, 60), ("sens", "Sensitivity", 1, 10, 8), ("hold", "Afterglow", 5, 50, 15)]
+SLIDERS = [("bright", "Brightness", 10, 100, 60), ("hue", "Colour", 0, 359, 0), ("sens", "Sensitivity", 1, 10, 8),
+           ("hold", "Afterglow", 5, 50, 15)]
 OPTIONS = [("map_notes", "Notes"), ("map_solf", "Solfeggio"), ("map_bowls", "Bowls"), ("lang_en", "EN"), ("lang_de", "DE")]
 
 # Every string the C side may put into a bound label (chakra_core.c, both languages), for the
@@ -39,7 +41,8 @@ STRINGS = [
     "Wurzel", "Sakral", "Solarplexus", "Herz", "Hals", "Stirn", "Krone",
     "Muladhara", "Svadhisthana", "Manipura", "Anahata", "Vishuddha", "Ajna", "Sahasrara",
     "Ready", "Strike a bowl or hum", " ct", "+", ".", ",", "Bereit", "Klangschale anschlagen oder summen", "Hz", "dB", "%", " s", " · ",
-    "LIGHTS", "LICHT", "Brightness", "Helligkeit", "Sensitivity", "Empfindlichkeit", "Afterglow", "Nachklang",
+    "Settings", "Einstellungen", "Connections", "Anbindungen", "Auto", "Colour", "Farbe", "Chakra", "°",
+    "Screen lamp", "Bildschirm-Lampe", "localhost", "http://", "LIGHTS", "LICHT", "Brightness", "Helligkeit", "Sensitivity", "Empfindlichkeit", "Afterglow", "Nachklang",
     "Mapping", "Zuordnung", "Notes", "Noten", "Solfeggio", "Bowls", "Schalen", "Strike your", "bowl",
     "-Schale anschlagen", "Hold the tone", "Ton halten", "learned", "angelernt", "/", "Flow", "Strike", "Fließen", "Anschlag", "Language", "Sprache", "English", "Deutsch",
     "Home Assistant", "Hue", "Wi-Fi", "WLAN", "Bluetooth",
@@ -136,42 +139,45 @@ def scene():
     add("button", "gear", None, x=420, y=5, w=52, h=52, radius=26, bg_opacity=0, callback="gear")
     icon("gear", 9, 9, 34, COG)
 
-    # Settings, over everything below the top bar. Every label is bound: the language switches.
+    # Settings, over everything below the top bar, as two pages behind two tabs: Settings (light,
+    # detection, language) and Connections (the lamps). Every label is bound: the language switches.
     group("grp_settings", None, 0, 62, 480, 418)
     add("container", None, "grp_settings", x=0, y=0, w=480, h=418, bg_color="#141219")
-    text("lbl_lights", "grp_settings", 24, 8, 300, 20, 14, BOLD, "#FFFFFFA0", sample="LIGHTS")
-    # The lamp list: a row per lamp the platform knows (paired outside the app), ticked when it
-    # follows the chakra; a lamp that is not paired is greyed and cannot be ticked.
-    for i in range(LAMPS):
-        y = 32 + i * 48
-        group(f"grp_lamp_{i}", "grp_settings", 24, y, 432, 42)
-        row = f"lamp_{i}"
-        add("button", row, f"grp_lamp_{i}", x=0, y=0, w=432, h=42, radius=14, bg_color="#2C2936",
-            bind=row, bind_target="color", callback=row)
-        text(f"lamp_icon_{i}", row, 12, 9, 24, 24, 24, ICONS, WHITE, align="center", sample=chr(HA),
-             charset=ICON_CHARSET)
-        text(f"lamp_name_{i}", row, 48, 10, 206, 22, 17, BOLD, WHITE, sample="Living room LED strip",
-             overflow="ellipsis")
-        text(f"lamp_info_{i}", row, 258, 12, 130, 18, 13, MED, "#FFFFFFB0", align="right", sample="not paired",
-             overflow="ellipsis")
-        group(f"grp_check_{i}", row, 398, 9, 24, 24)
-        icon(f"grp_check_{i}", 0, 0, 24, CHECK)
-        group(f"grp_veil_{i}", f"grp_lamp_{i}", 0, 0, 432, 42)
-        add("container", None, f"grp_veil_{i}", x=0, y=0, w=432, h=42, radius=14, bg_color="#141219",
-            bg_opacity=150)
+    for j, (b, label) in enumerate([("tab_set", "Settings"), ("tab_conn", "Connections")]):
+        add("button", b, "grp_settings", x=24 + j * 220, y=8, w=212, h=36, radius=18,
+            bg_color=ON if j == 0 else OFF, bind=b, bind_target="color", callback=b)
+        text(f"lbl_{b}", b, 0, 7, 212, 22, 16, BOLD, WHITE, align="center", sample=label)
+
+    # Page 1, Settings. The light's colour: Auto follows the chakra, a dot fixes one chakra's colour,
+    # the Colour slider any hue; then brightness, detection, mapping and language.
+    group("grp_page_set", "grp_settings", 0, 0, 480, 418, hidden=False)
+    add("button", "col_auto", "grp_page_set", x=24, y=56, w=84, h=36, radius=18, bg_color=ON,
+        bind="col_auto", bind_target="color", callback="col_auto")
+    text("lbl_col_auto", "col_auto", 0, 7, 84, 22, 16, BOLD, WHITE, align="center", sample="Auto")
+    d, gap = 36, 10
+    for i in range(7):
+        x = 122 + i * (d + gap)
+        group(f"grp_col_ring_{i}", "grp_page_set", x - 4, 52, d + 8, d + 8)
+        add("container", None, f"grp_col_ring_{i}", x=0, y=0, w=d + 8, h=d + 8, radius=(d + 8) // 2,
+            bg_opacity=0, border_color=WHITE, border_width=3)
+        add("button", f"col_{i}", "grp_page_set", x=x, y=56, w=d, h=d, radius=d // 2, bg_color=CHAKRA_RGB[i],
+            callback=f"col_{i}")
     for i, (key, label, lo, hi, val) in enumerate(SLIDERS):
-        y = 230 + i * 50
-        text(f"lbl_{key}", "grp_settings", 24, y, 300, 22, 16, BOLD, WHITE, sample=label if label != "Notes" else "Notes 440")
+        y = 104 + i * 52
+        text(f"lbl_{key}", "grp_page_set", 24, y, 260, 22, 16, BOLD, WHITE, sample=label)
         if key == "hold":  # the after-glow row also chooses how fast colours follow
-            text(f"val_{key}", "grp_settings", 136, y, 90, 22, 16, BOLD, "#FFFFFFC0", sample="1.5 s")
+            text(f"val_{key}", "grp_page_set", 136, y, 90, 22, 16, BOLD, "#FFFFFFC0", sample="1.5 s")
             for j, (b, lab) in enumerate([("react_flow", "Flow"), ("react_strike", "Strike")]):
-                add("button", b, "grp_settings", x=300 + j * 80, y=y - 3, w=76, h=26, radius=13,
-                    bg_color="#6E5ACF" if j == 0 else "#3A3744", bind=b, bind_target="color", callback=b)
+                add("button", b, "grp_page_set", x=300 + j * 80, y=y - 3, w=76, h=26, radius=13,
+                    bg_color=ON if j == 0 else OFF, bind=b, bind_target="color", callback=b)
                 text(f"lbl_{b}", b, 0, 3, 76, 20, 14, BOLD, WHITE, align="center", sample=lab)
         else:
-            text(f"val_{key}", "grp_settings", 336, y, 120, 22, 16, BOLD, "#FFFFFFC0", align="right", sample="60 %")
-        add("slider", f"sl_{key}", "grp_settings", x=24, y=y + 23, w=432, h=24, min=lo, max=hi, value=val,
-            track_size=8, radius=12, bg_color="#3A3744", fg_color=WHITE, knob_color=WHITE, bind=f"sl_{key}",
+            text(f"val_{key}", "grp_page_set", 300, y, 156, 22, 16, BOLD, "#FFFFFFC0", align="right", sample="60 %")
+        if key == "hue":  # the chosen colour as a swatch beside the label
+            add("container", "hue_swatch", "grp_page_set", x=104, y=y + 2, w=18, h=18, radius=9, bg_color="#FF0000",
+                bind="hue_swatch", bind_target="color")
+        add("slider", f"sl_{key}", "grp_page_set", x=24, y=y + 23, w=432, h=24, min=lo, max=hi, value=val,
+            track_size=8, radius=12, bg_color=OFF, fg_color=WHITE, knob_color=WHITE, bind=f"sl_{key}",
             events=[{"event": "value", "action": "call", "target_name": f"sl_{key}"}])
     # One row: mapping left (notes, Solfeggio, the user's own bowls), language right. A tap on
     # Bowls before any are learned, or holding it, starts learning them.
@@ -182,9 +188,37 @@ def scene():
                              {"event": "long", "action": "call", "target_name": "bowls_learn"}]}
         else:
             ev = {"callback": b}
-        add("button", b, "grp_settings", x=xs[i], y=378, w=ws[i], h=34, radius=17,
-            bg_color="#6E5ACF" if i in (0, 3) else "#3A3744", bind=b, bind_target="color", **ev)
+        add("button", b, "grp_page_set", x=xs[i], y=328, w=ws[i], h=34, radius=17,
+            bg_color=ON if i in (0, 3) else OFF, bind=b, bind_target="color", **ev)
         text(f"lbl_{b}", b, 0, 7, ws[i], 22, 15, BOLD, WHITE, align="center", sample=label if label != "Notes" else "Notes 440")
+
+    # Page 2, Connections: a row per lamp the platform knows (paired outside the app), ticked when it
+    # follows the chakra; a lamp that is not paired is greyed and cannot be ticked. The screen lamp's
+    # address stands large below, to be typed into a TV or laptop browser.
+    group("grp_page_conn", "grp_settings", 0, 0, 480, 418)
+    for i in range(LAMPS):
+        y = 56 + i * 52
+        group(f"grp_lamp_{i}", "grp_page_conn", 24, y, 432, 44)
+        row = f"lamp_{i}"
+        add("button", row, f"grp_lamp_{i}", x=0, y=0, w=432, h=44, radius=18, bg_color=TILE,
+            bind=row, bind_target="color", callback=row)
+        text(f"lamp_icon_{i}", row, 12, 10, 24, 24, 24, ICONS, WHITE, align="center", sample=chr(HA),
+             charset=ICON_CHARSET)
+        text(f"lamp_name_{i}", row, 48, 11, 206, 22, 17, BOLD, WHITE, sample="Living room LED strip",
+             overflow="ellipsis")
+        text(f"lamp_info_{i}", row, 258, 13, 130, 18, 13, MED, "#FFFFFFB0", align="right", sample="not paired",
+             overflow="ellipsis")
+        group(f"grp_check_{i}", row, 398, 10, 24, 24)
+        icon(f"grp_check_{i}", 0, 0, 24, CHECK)
+        group(f"grp_veil_{i}", f"grp_lamp_{i}", 0, 0, 432, 44)
+        add("container", None, f"grp_veil_{i}", x=0, y=0, w=432, h=44, radius=18, bg_color="#141219",
+            bg_opacity=150)
+    group("grp_url", "grp_page_conn", 24, 272, 432, 120)
+    add("container", None, "grp_url", x=0, y=0, w=432, h=120, radius=18, bg_color=TILE)
+    icon("grp_url", 16, 16, 28, MONITOR)
+    text("lbl_url", "grp_url", 56, 19, 360, 24, 16, BOLD, "#FFFFFFC0", sample="Screen lamp", overflow="ellipsis")
+    text("lamp_url", "grp_url", 16, 56, 400, 48, 36, XBOLD, WHITE, align="center", sample="192.168.178.123:3310",
+         overflow="ellipsis")
 
     # Hold to close, as in Muse: the bar fills orange from the left over 3 s.
     group("grp_hold", None, 0, 0, 480, 62)
@@ -208,7 +242,8 @@ def main():
     for s in STRINGS:
         chars.update(s)
     (HERE / CHARSET).write_text("".join(sorted(chars)), encoding="utf-8")
-    (HERE / ICON_CHARSET).write_text("".join(chr(c) for c in (COG, HA, BULB, WIFI, BT, CHECK)), encoding="utf-8")
+    (HERE / ICON_CHARSET).write_text("".join(chr(c) for c in (COG, HA, BULB, WIFI, BT, CHECK, MONITOR)),
+                                     encoding="utf-8")
     (HERE / "main.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"main.json: {len(doc['objects'])} objects; charset.txt: {len(chars)} characters")
 
