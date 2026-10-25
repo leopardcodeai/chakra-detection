@@ -134,8 +134,8 @@ def listen(sock, entity, lamp=None):
                     set_virtual(lamp, line)
                 elif entity:
                     set_lamp(entity, line)
-            elif line.startswith("reading\t") and lamp:
-                set_virtual(lamp, line)  # names, note, Hz and cents for the lamp page's quiet text
+            elif (line.startswith("reading\t") or line.startswith("bars\t")) and lamp:
+                set_virtual(lamp, line)  # names, note, Hz, cents and the spectrum for the lamp page
             elif line == "close":
                 print("  closed: top bar held 3 s, the board would go back to Vibe Mode now", flush=True)
 

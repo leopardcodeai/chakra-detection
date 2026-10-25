@@ -8,6 +8,7 @@
 // change: light\t<chakra -1..6>\t<RRGGBB>\t<brightness %>\t<transition s>\n, close\n for the hold gesture,
 // and while a chakra is locked, at most twice a second when it changes, the reading for a lamp page:
 // reading\t<chakra>\t<english>\t<german>\t<sanskrit>\t<note+octave>\t<Hz>\t<cents>\t<solfeggio Hz>\t<en|de>\n
+// and about five times a second the spectrum for the page's faint band: bars\t<16 values 0..100>\n
 // The AI sound gate's verdicts come in on a second port, CHAKRA_AI_PORT or the audio port + 1,
 // one line each from tools/chakra_feed.py --ai: sound\t<bowl|other|none>\t<strike 0|1>\n.
 // Port: CHAKRA_FEED_PORT or 8698, 127.0.0.1 only, one client at a time. All socket work is
@@ -204,6 +205,25 @@ static void send_reading(const chakra_reading_t *r)
     send_text(line);
 }
 
+/* The spectrum for a lamp page's faint band (owner 25.10.2026: "damit man sieht, es arbeitet"):
+ * bars\t<16 values 0..100, comma-separated>, about five times a second while the screen lamp is ticked. */
+static void send_bars(const chakra_reading_t *r)
+{
+    static uint32_t last_ms;
+    const uint32_t t = now_ms(NULL);
+    if (!(host.lamps & 0x01) || t - last_ms < 200) {
+        return;
+    }
+    last_ms = t;
+    char line[16 + CHAKRA_BARS * 4];
+    int n = snprintf(line, sizeof(line), "bars\t");
+    for (int i = 0; i < CHAKRA_BARS && n < (int)sizeof(line) - 5; ++i) {
+        n += snprintf(line + n, sizeof(line) - (size_t)n, i ? ",%u" : "%u", (unsigned)r->bars[i]);
+    }
+    snprintf(line + n, sizeof(line) - (size_t)n, "\n");
+    send_text(line);
+}
+
 static int poll_audio(chakra_reading_t *out, void *ctx)
 {
     (void)ctx;
@@ -264,6 +284,7 @@ static int poll_audio(chakra_reading_t *out, void *ctx)
     host.hops += (unsigned long)hops;
     if (hops) {
         send_reading(out);
+        send_bars(out);
     }
     /* CHAKRA_LOG=1: one reading a second on stderr, for tests against recordings. */
     static const char *log;
