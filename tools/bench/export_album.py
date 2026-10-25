@@ -13,6 +13,7 @@ Pitfalls:
   * The first run asks once whether this app may control Photos (Automation permission).
   * An item still in iCloud takes as long as its download; the timeout per item is 30 minutes.
   * Photos sometimes returns without writing the file; the line says so, and a rerun fetches it.
+  * A video moved to own_media/_excluded (taken out of the set by hand) is skipped for good.
   * Photos may name an export differently from the item's filename (an edited item, a HEVC video);
     then the skip check misses it and the file is exported again under the same name, harmlessly.
 Usage:  export_album.py [--album "ChakraV Training"] [--dry-run]
@@ -52,6 +53,9 @@ def main():
     names = osa(f'tell application "Photos" to get filename of every media item of {album}').split(", ")
     names = [n for n in names if n]
     have = {p.name for p in OUT.iterdir()} if OUT.exists() else set()
+    # Videos taken out of the set by hand (own_media/_excluded) are never fetched again.
+    excluded = OUT.parent / "_excluded"
+    have |= {p.name for p in excluded.iterdir()} if excluded.exists() else set()
     todo = [(i + 1, n) for i, n in enumerate(names) if n not in have]
     print(f"{len(names)} items in {a.album}, {len(names) - len(todo)} already in {OUT.name}, {len(todo)} to export",
           flush=True)
