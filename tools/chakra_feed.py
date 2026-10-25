@@ -9,12 +9,14 @@ What: streams signed 16-bit mono 16 kHz audio to the simulator (127.0.0.1:8698, 
         wav FILE      any file ffmpeg can read
       and prints what the simulator sends back. With --light ENTITY each chakra also colours a
       real lamp through Home Assistant's REST API (HA_URL and HA_TOKEN from the environment,
-      never from the command line).
+      never from the command line). With --lamp URL each light command goes to a screen lamp
+      instead: the protocol line as it came, POSTed to URL/light (a page that fills the screen with
+      the colour, e.g. on http://127.0.0.1:3310), so no real lamp lights up.
 Why:  the board is on order; this tests the whole chain, microphone to lamp, on the Mac.
 Pitfalls:
   * Only one client at a time; a new feeder replaces the old one.
   * The mic needs ffmpeg (brew install ffmpeg) and the terminal's microphone permission.
-Usage:  chakra_feed.py demo | tone 341 [--seconds 4] | mic | wav FILE  [--light light.x] [--dry-run]
+Usage:  chakra_feed.py demo | tone 341 [--seconds 4] | mic | wav FILE  [--light light.x | --lamp URL] [--dry-run]
 """
 import argparse
 import json
@@ -91,7 +93,18 @@ def set_lamp(entity, line):
         print(f"  lamp {entity}: {e}", flush=True)
 
 
-def listen(sock, entity):
+def set_virtual(url, line):
+    """The protocol line as it came, to the screen lamp page (POST /light); nothing in the house."""
+    req = urllib.request.Request(url.rstrip("/") + "/light", data=line.encode(), method="POST",
+                                 headers={"Content-Type": "text/plain"})
+    try:
+        with urllib.request.urlopen(req, timeout=2) as r:
+            r.read()
+    except OSError as e:
+        print(f"  screen lamp {url}: {e}", flush=True)
+
+
+def listen(sock, entity, lamp=None):
     buf = b""
     while True:
         try:
@@ -108,7 +121,9 @@ def listen(sock, entity):
                 c = int(line.split("\t")[1])
                 print(f"  light: {NAMES[c] if c >= 0 else 'silence'}  ({line.split(chr(9), 2)[2].replace(chr(9), ', ')})",
                       flush=True)
-                if entity:
+                if lamp:
+                    set_virtual(lamp, line)
+                elif entity:
                     set_lamp(entity, line)
             elif line == "close":
                 print("  closed: top bar held 3 s, the board would go back to Vibe Mode now", flush=True)
@@ -128,6 +143,7 @@ def main():
     ap.add_argument("--seconds", type=float, default=4.0)
     ap.add_argument("--rounds", type=int, default=1)
     ap.add_argument("--light", help="a Home Assistant light entity to colour, e.g. light.wohnzimmer")
+    ap.add_argument("--lamp", metavar="URL", help="a screen lamp page instead of a real lamp, e.g. http://127.0.0.1:3310")
     ap.add_argument("--port", type=int, default=int(os.environ.get("CHAKRA_FEED_PORT", "8698")))
     ap.add_argument("--wait", action="store_true", help="retry for 2 min until the simulator listens")
     ap.add_argument("--dry-run", action="store_true", help="say what would be sent, connect to nothing")
@@ -140,7 +156,8 @@ def main():
         plan = {"demo": f"{a.rounds} round(s): " + ", ".join(f"{n} {note_hz(k):.1f} Hz" for n, k in zip(NAMES, DEMO_NOTES)),
                 "tone": f"{a.arg} Hz for {a.seconds} s", "mic": "the default microphone until Ctrl-C",
                 "wav": f"{a.arg} in real time"}[a.mode]
-        print(f"would send to 127.0.0.1:{a.port}: {plan}" + (f"; lamp {a.light}" if a.light else ""))
+        print(f"would send to 127.0.0.1:{a.port}: {plan}" + (f"; screen lamp {a.lamp}" if a.lamp else
+                                                              f"; lamp {a.light}" if a.light else ""))
         return
     for attempt in range(120 if a.wait else 1):
         try:
@@ -151,7 +168,7 @@ def main():
                 sys.exit(f"no simulator on 127.0.0.1:{a.port} (./sim.sh first)")
             time.sleep(1)
     sock.settimeout(None)
-    threading.Thread(target=listen, args=(sock, a.light), daemon=True).start()
+    threading.Thread(target=listen, args=(sock, None if a.lamp else a.light, a.lamp), daemon=True).start()
     try:
         if a.mode == "demo":
             for _ in range(a.rounds):

@@ -71,6 +71,9 @@ tests/analyse.sh my_bowls.wav   # any recording
 
 `sim.sh` expects this folder next to the workspace (`../../workspace`). With `CHAKRA_LIGHT=light.x`,
 `HA_URL` and `HA_TOKEN` in the environment the simulator also colours that Home Assistant lamp.
+`python3 tools/chakra_feed.py mic --lamp http://127.0.0.1:3310` sends every light command to a screen
+lamp page instead (the protocol line `light\t<chakra>\t<RRGGBB>\t<bright>\t<transition>`, POSTed to
+`/light`), so a screen in fullscreen shows the colours without any real lamp.
 
 ## On the board
 
