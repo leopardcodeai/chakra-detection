@@ -41,14 +41,14 @@ STRINGS = [
     "Wurzel", "Sakral", "Solarplexus", "Herz", "Hals", "Stirn", "Krone",
     "Muladhara", "Svadhisthana", "Manipura", "Anahata", "Vishuddha", "Ajna", "Sahasrara",
     "Ready", "Strike a bowl or hum", " ct", "+", ".", ",", "Bereit", "Klangschale anschlagen oder summen", "Hz", "dB", "%", " s", " · ",
-    "Settings", "Einstellungen", "Connections", "Anbindungen", "Auto", "Colour", "Farbe", "Chakra", "°",
+    "Settings", "Einstellungen", "Connections", "Anbindungen", "Auto", "Colour", "Farbe", "ChakraA", "°",
     "Local AI sound gate", "Lokaler KI-Klangfilter", "Off", "On", "Aus", "An",
     "Screen lamp", "Bildschirm-Lampe", "localhost", "http://", "LIGHTS", "LICHT", "Brightness", "Helligkeit", "Sensitivity", "Empfindlichkeit", "Afterglow", "Nachklang",
     "Mapping", "Zuordnung", "Notes", "Noten", "Solfeggio", "Bowls", "Schalen", "Strike your", "bowl",
     "-Schale anschlagen", "Hold the tone", "Ton halten", "learned", "angelernt", "/", "Flow", "Strike", "Fließen", "Anschlag", "Language", "Sprache", "English", "Deutsch",
     "Home Assistant", "Hue", "Wi-Fi", "WLAN", "Bluetooth",
     "not paired", "nicht gekoppelt", "Living room LED strip", "EN", "DE",
-    "Hold: close Chakra", "Halten: Chakra schließen", "Closing Chakra", "Chakra wird geschlossen", "--:--",
+    "Hold: close ChakraA", "Halten: ChakraA schließen", "Closing ChakraA", "ChakraA wird geschlossen", "--:--",
 ]
 
 objects: list = []
@@ -133,7 +133,7 @@ def scene():
     add("button", "topbar", None, x=0, y=0, w=416, h=62, bg_opacity=0,
         events=[{"event": "press", "action": "call", "target_name": "hold_start"},
                 {"event": "release", "action": "call", "target_name": "hold_end"}])
-    add("label", None, None, x=24, y=10, w=150, h=44, text="Chakra", font_size=30, font=XBOLD, fg_color=WHITE)
+    add("label", None, None, x=24, y=10, w=150, h=44, text="ChakraA", font_size=30, font=XBOLD, fg_color=WHITE)
     text("clock", None, 165, 12, 150, 40, 28, BOLD, WHITE, align="center", sample="12:00", overflow="clip")
     add("container", "conn_dot", None, x=396, y=26, w=12, h=12, radius=6, bg_color=ORANGE,
         bind="conn_dot", bind_target="color")
@@ -233,7 +233,7 @@ def scene():
     add("progress", "hold_bar", "grp_hold", x=0, y=0, w=480, h=62, min=0, max=1000, value=0,
         bg_color=SHADOW, fg_color=ORANGE, radius=0)
     text("hold_text", "grp_hold", 0, 14, 480, 36, 24, XBOLD, INK, align="center",
-         sample="Hold: close Chakra", overflow="ellipsis")
+         sample="Hold: close ChakraA", overflow="ellipsis")
 
     return {"screen": "chakra", "w": 480, "h": 480, "screen_bg": IDLE_BG, "font": MED,
             "default_font_size": 22, "swipe": False, "objects": objects}

@@ -45,12 +45,12 @@ enum {
 };
 static const char *const TEXT[2][S_COUNT] = {
     {"Ready", "Strike a bowl or hum", "Brightness", "Sensitivity", "Afterglow", "Notes", "not paired",
-     "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Screen lamp", "Hold: close Chakra", "Closing Chakra", "Bowls",
+     "Home Assistant", "Hue", "Wi-Fi", "Bluetooth", "Screen lamp", "Hold: close ChakraA", "Closing ChakraA", "Bowls",
      "Strike your %s bowl", "hold the tone", "Flow", "Strike", "Settings", "Connections", "Auto", "Colour",
      "Local AI sound gate", "Off", "On"},
     {"Bereit", "Klangschale anschlagen oder summen", "Helligkeit", "Empfindlichkeit", "Nachklang", "Noten",
-     "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Bildschirm-Lampe", "Halten: Chakra schließen",
-     "Chakra wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag",
+     "nicht gekoppelt", "Home Assistant", "Hue", "WLAN", "Bluetooth", "Bildschirm-Lampe", "Halten: ChakraA schließen",
+     "ChakraA wird geschlossen", "Schalen", "%s-Schale anschlagen", "Ton halten", "Fließen", "Anschlag",
      "Einstellungen", "Anbindungen", "Auto", "Farbe", "Lokaler KI-Klangfilter", "Aus", "An"},
 };
 

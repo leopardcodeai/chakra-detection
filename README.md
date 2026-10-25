@@ -1,4 +1,4 @@
-# Chakra Detection
+# ChakraA: Chakra Detection
 
 **Strike a singing bowl. The room takes its colour.**
 
@@ -9,11 +9,11 @@ follow (Philips Hue, Home Assistant, WiZ, or any TV or laptop browser as a scree
 and play.
 
 **Which one?** There are two apps, from the same code. In yoga and sound healing many people want no AI
-at all, or only AI that stays in the room: Chakra Detection is built for that. It works without any AI, and
+at all, or only AI that stays in the room: ChakraA is built for that. It works without any AI, and
 its one AI feature runs locally, on the device, with no camera and no cloud. ChakraV is the experimental
-sibling that tries what a camera and bigger models can add.
+sibling that tries what a camera and bigger models can add. (ChakraA: the audio one. ChakraV: with video.)
 
-| | [Chakra Detection](https://github.com/leopardcodeai/chakra-detection) (this one) | [ChakraV](https://github.com/leopardcodeai/chakrav) |
+| | [ChakraA](https://github.com/leopardcodeai/chakra-detection) (this one) | [ChakraV](https://github.com/leopardcodeai/chakrav) |
 |---|---|---|
 | Listens | microphone | microphone and camera |
 | AI | none needed; an optional local AI sound gate, on the device only | as much on the device as the ESP32-S31 runs, plus optional cloud models with your own API key |
