@@ -131,6 +131,7 @@ def main():
     ap.add_argument("--own", action="store_true",
                     help="add your own videos (label_own.py's own_labels.json): every window takes its segment's label")
     ap.add_argument("--only-own", action="store_true", help="your own videos alone, no Commons clips")
+    ap.add_argument("--unchecked", action="store_true", help="with --own: also the segments nobody checked")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     models = a.models.split(",")
@@ -168,7 +169,11 @@ def main():
             p = next((d / video for d in OWN_DIRS if (d / video).exists()), None)
             if not p:
                 continue
-            segs = [s for s in own if s["video"] == video]
+            # Only segments a person checked: an unchecked label may be the model's guess (a felt-struck
+            # bowl was "gong" in 32 of 35 segments of IMG_2145), --unchecked takes them too.
+            segs = [s for s in own if s["video"] == video and (s.get("checked") or a.unchecked)]
+            if not segs:
+                continue
             w16 = decode(p, 16000)
             n = max(1, int(len(w16) / 16000 / STEP))
             base.append({"clip": f"own/{video}", "class": "own", "expect": "mixed", "n": n, "segments": segs,
