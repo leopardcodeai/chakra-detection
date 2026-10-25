@@ -13,7 +13,7 @@ at all, or only AI that stays in the room: ChakraA is built for that. It works w
 its one AI feature runs locally, on the device, with no camera and no cloud. ChakraV is the experimental
 sibling that tries what a camera and bigger models can add. (ChakraA: the audio one. ChakraV: with video.)
 
-| | [ChakraA](https://github.com/leopardcodeai/chakra-detection) (this one) | [ChakraV](https://github.com/leopardcodeai/chakrav) |
+| | [ChakraA](https://github.com/leopardcodeai/chakraa) (this one) | [ChakraV](https://github.com/leopardcodeai/chakrav) |
 |---|---|---|
 | Listens | microphone | microphone and camera |
 | AI | none needed; an optional local AI sound gate, on the device only | as much on the device as the ESP32-S31 runs, plus optional cloud models with your own API key |
@@ -87,7 +87,7 @@ computer's microphone.
 
 ```sh
 git clone https://github.com/esp-mosaico/esp-mosaico-vibe workspace   # Espressif's workspace (once)
-git clone https://github.com/leopardcodeai/chakra-detection apps/chakra
+git clone https://github.com/leopardcodeai/chakraa apps/chakra
 cd apps/chakra
 ./sim.sh --mic                  # browser preview at http://127.0.0.1:3222, listening to your microphone
 python3 tools/chakra_feed.py demo        # or: seven bowl tones, root to crown
