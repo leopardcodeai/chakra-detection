@@ -29,9 +29,10 @@ bigger models can add. (ChakraA: the audio one. ChakraV: with video.)
 ## What it does
 
 - **Hears the tone, not the noise.** Only a loud enough tone that holds its pitch and carries most of its
-  energy on its harmonics changes the colour. Drums, rattles and rain sticks mostly leave it alone.
-- **Hears every strike.** Each strike is found on its own (spectral flux), so a bowl struck while a louder
-  one still rings takes the colour.
+  energy on its harmonics, or on a bowl's own overtones (about 2.7 and 5.4 times the root), changes the
+  colour. Drums, rattles and rain sticks mostly leave it alone.
+- **Hears every strike.** Each strike is found on its own (SuperFlux, which ignores a bowl's own beating),
+  so a bowl struck while a louder one still rings takes the colour.
 - **Shows it like a tuner.** Chakra, Sanskrit name, note, Hz and cents; a ring fills the closer the tone sits
   to its note; a semitone spectrum with the seven chakra dots under their notes.
 - **Colours the room.** The screen fades to the colour, ticked lamps follow, and the screen lamp page
@@ -78,17 +79,17 @@ bootstrap intervals over recordings.
 
 | Measure | Flow | Strike |
 |---|---|---|
-| Strikes that show the right chakra (8 recordings, 70 strikes) | 83 % [71, 93] | 87 % [79, 96] |
-| of these, public tune-up videos only (2 videos, 28 strikes) | 71 % [43, 81] | 75 % [57, 81] |
-| From the strike to the right colour, median | 0.29 s (n = 45) | 0.03 s (n = 47) |
-| Colour changes a minute in sessions on the body (10 videos) | 7.5 [4.9, 8.2] | 15.0 [11.4, 19.1] |
+| Strikes that show the right chakra (8 recordings, 70 strikes) | 87 % [79, 96] | 90 % [83, 98] |
+| of these, public tune-up videos only (2 videos, 28 strikes) | 75 % [57, 81] | 79 % [71, 81] |
+| From the strike to the right colour, median | 0.29 s (n = 48) | 0.03 s (n = 49) |
+| Colour changes a minute in sessions on the body (10 videos) | 7.3 [4.2, 8.4] | 14.5 [11.3, 22.5] |
 | Sessions with more than 3 changes in any second (flicker limit) | 0 of 10 | 2 of 10 |
 
-**With and without the local AI sound gate** (79 Wikimedia Commons clips): gongs colour the room 65 % of
-their sounding time without the gate and 17 % with it, voices 46 % and 3 %, drums 14 % and 1 %, while
-singing bowls keep their colour 84 % of the time (91 % without). The price: bells lose colour too.
+**With and without the local AI sound gate** (79 Wikimedia Commons clips): gongs colour the room 66 % of
+their sounding time without the gate and 18 % with it, voices 48 % and 3 %, drums 14 % and 1 %, while
+singing bowls keep their colour 86 % of the time (92 % without). The price: bells lose colour too.
 
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/evaluation/figures/gate-dark.svg"><img src="docs/evaluation/figures/gate.svg" width="640" alt="Share of sounding time with a colour per sound class, without AI, with the pretrained gate and with the trained head: bowls stay near 85 to 91 %, gongs drop from 65 to 17 %, voices from 46 to 3 %, drums from 14 to 1 %"></picture></p>
+<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/evaluation/figures/gate-dark.svg"><img src="docs/evaluation/figures/gate.svg" width="640" alt="Share of sounding time with a colour per sound class, without AI, with the pretrained gate and with the trained head: bowls stay near 86 to 92 %, gongs drop from 66 to 18 %, voices from 48 to 3 %, drums from 14 to 1 %"></picture></p>
 
 Learned on the way: a tune-up video's "root" bowl rings at G#3 (208 Hz), so by note the app calls it
 Throat. Real bowls are rarely tuned to C to B: learn your bowls. Small n, one set of own bowls, one
@@ -167,7 +168,7 @@ hardware.
 
 | Part | File |
 |---|---|
-| Detection: FFT, harmonics, steadiness, strikes (spectral flux), mappings, learned bowls | `components/app_chakra/chakra_detect.c` |
+| Detection: FFT, harmonics, steadiness, bowl overtones, strikes (SuperFlux), mappings, learned bowls | `components/app_chakra/chakra_detect.c` |
 | Screen: fades, symbols, tuner ring, settings, learning | `components/app_chakra/chakra_core.c`, `ui/make_scene.py` |
 | Light: kick, gong swell, the gate's colour rule, lamp pace | `components/app_chakra/chakra_light.c` |
 | Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, the screen lamp page, settings | `main/main.c` |

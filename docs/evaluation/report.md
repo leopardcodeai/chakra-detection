@@ -1,14 +1,14 @@
 # ChakraA: how well the app hears a singing bowl
 
-*Run 2026-10-26_103325, chakra d7ddbb2, public variant*
+*Run 2026-10-26_231334, chakra f72b136, public variant*
 
 ## Summary
 
-- **Strikes:** Flow shows the right chakra for 20 of 28 strikes (71 % [43, 81]), Strike for 21 of 28 (75 % [57, 81]); 2 recordings (YouTube only).
-- **Latency** from the onset to the right colour, median: Flow 0.24 s [0.22, 0.25] (n = 8), Strike 0.11 s [0.05, 0.38] (n = 9).
-- **The owner's own rounds** (seven bowls struck root to crown, 6 recordings, shown here as numbers only): Flow 38 of 42, Strike 40 of 42 strikes right.
-- **AI gate** (mn05, 79 Commons clips): sounds that should colour keep 62 % [49, 74] without AI, 49 % [36, 62] pretrained, 47 % [34, 60] with the trained head; sounds that should not colour drop from 25 % [15, 36] to 6 % [2, 12] and 4 % [1, 9] (n = 30 and 49).
-- **Light in real sessions** (10 YouTube sessions): Flow 7.5 [4.9, 8.2] colour changes a minute, Strike 15.0 [11.4, 19.1]; recordings with more than three changes in any second: Flow 0, Strike 2.
+- **Strikes:** Flow shows the right chakra for 21 of 28 strikes (75 % [57, 81]), Strike for 22 of 28 (79 % [71, 81]); 2 recordings (YouTube only).
+- **Latency** from the onset to the right colour, median: Flow 0.25 s [0.22, 0.28] (n = 9), Strike 0.10 s [0.05, 0.73] (n = 10).
+- **The owner's own rounds** (seven bowls struck root to crown, 6 recordings, shown here as numbers only): Flow 40 of 42, Strike 41 of 42 strikes right.
+- **AI gate** (mn05, 79 Commons clips): sounds that should colour keep 63 % [49, 76] without AI, 53 % [39, 66] pretrained, 50 % [36, 63] with the trained head; sounds that should not colour drop from 25 % [15, 36] to 7 % [2, 12] and 4 % [1, 10] (n = 30 and 49).
+- **Light in real sessions** (10 YouTube sessions): Flow 7.3 [4.2, 8.4] colour changes a minute, Strike 14.5 [11.3, 22.5]; recordings with more than three changes in any second: Flow 0, Strike 2.
 
 Every number carries its n. Intervals are 95 % percentile bootstrap intervals over recordings (10000 draws, seed 26102026): recordings, not strikes or windows, are the independent unit.
 
@@ -60,14 +60,14 @@ Where the marks were checked against the flux, the alignment finds the same stri
 |---|---|---|---|---|---|---|---|
 | YouTube, chapters (3 strikes a bowl) | Flow | 1 | 21 | 17 of 21 | 81 % | 81 % | 0.22 s (n = 5) |
 | YouTube, chapters (3 strikes a bowl) | Strike | 1 | 21 | 17 of 21 | 81 % | 76 % | 0.05 s (n = 5) |
-| YouTube, spoken announcements | Flow | 1 | 7 | 3 of 7 | 43 % | 43 % | 0.25 s (n = 3) |
-| YouTube, spoken announcements | Strike | 1 | 7 | 4 of 7 | 57 % | 43 % | 0.38 s (n = 4) |
-| Own rounds, hand-marked strikes | Flow | 2 | 14 | 13 of 14 | 93 % [86, 100] | 93 % [86, 100] | 0.29 s [0.28, 0.33] (n = 13) |
-| Own rounds, hand-marked strikes | Strike | 2 | 14 | 13 of 14 | 93 % [86, 100] | 93 % [86, 100] | 0.01 s [0.01, 0.03] (n = 12) |
-| Own rounds, derived strike times | Flow | 4 | 28 | 25 of 28 | 89 % [86, 96] | 89 % [86, 96] | 0.30 s [0.29, 0.32] (n = 24) |
-| Own rounds, derived strike times | Strike | 4 | 28 | 27 of 28 | 96 % [89, 100] | 93 % [86, 100] | 0.02 s [0.01, 0.06] (n = 26) |
+| YouTube, spoken announcements | Flow | 1 | 7 | 4 of 7 | 57 % | 57 % | 0.28 s (n = 4) |
+| YouTube, spoken announcements | Strike | 1 | 7 | 5 of 7 | 71 % | 57 % | 0.73 s (n = 5) |
+| Own rounds, hand-marked strikes | Flow | 2 | 14 | 14 of 14 | 100 % [100, 100] | 100 % [100, 100] | 0.29 s [0.28, 0.30] (n = 14) |
+| Own rounds, hand-marked strikes | Strike | 2 | 14 | 14 of 14 | 100 % [100, 100] | 100 % [100, 100] | 0.00 s [0.00, 0.01] (n = 13) |
+| Own rounds, derived strike times | Flow | 4 | 28 | 26 of 28 | 93 % [86, 100] | 93 % [86, 100] | 0.29 s [0.29, 0.31] (n = 25) |
+| Own rounds, derived strike times | Strike | 4 | 28 | 27 of 28 | 96 % [89, 100] | 96 % [89, 100] | 0.02 s [0.00, 0.05] (n = 26) |
 
-Own rounds with derived times: 5 of 28 strikes are flagged uncertain (their bowl gained under 10 % of the new energy). Without them, Flow 91 % [83, 100], Strike 96 % [88, 100].
+Own rounds with derived times: 5 of 28 strikes are flagged uncertain (their bowl gained under 10 % of the new energy). Without them, Flow 96 % [88, 100], Strike 96 % [88, 100].
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="figures/strikes-dark.svg"><img src="figures/strikes.svg" alt="Share of strikes that show the right chakra, Flow and Strike. Filled marks and thick lines: 95 % bootstrap interval over recordings; hollow marks and thin lines: a group of one recording, Wilson interval over its strikes (YouTube; the own rounds are in the table)." width="720"></picture>
 
@@ -82,8 +82,8 @@ Own rounds with derived times: 5 of 28 strikes are flagged uncertain (their bowl
 | Video | Truth | Segments | Flow | Strike |
 |---|---|---|---|---|
 | -ar9vsmFhJU | chapters | 7 | 80 % | 81 % |
-| u1KjQTAHSlo | announced | 7 | 54 % | 51 % |
-| 8Qhh2VF1Oz4 | chapters sustained | 5 | 87 % | 73 % |
+| u1KjQTAHSlo | announced | 7 | 60 % | 56 % |
+| 8Qhh2VF1Oz4 | chapters sustained | 5 | 87 % | 79 % |
 
 -ar9vsmFhJU's root bowl rings at G#3 (208 Hz): by note the app calls it Throat, so the root chapter scores near zero by design. The app's answer is to learn your bowls (Settings, mapping 'your bowls').
 
@@ -91,12 +91,12 @@ Own rounds with derived times: 5 of 28 strikes are flagged uncertain (their bowl
 
 | Sound | Recordings | Should colour | Flow, colour share | Strike, colour share |
 |---|---|---|---|---|
-| Singing bowl | 10 | yes | 92 % [84, 97] | 95 % [89, 99] |
-| Bell | 18 | yes | 43 % [30, 57] | 85 % [77, 90] |
+| Singing bowl | 10 | yes | 93 % [87, 98] | 98 % [94, 99] |
+| Bell | 18 | yes | 45 % [27, 63] | 87 % [82, 92] |
 | Tuning fork | 2 | yes | 91 % [87, 95] | 95 % [93, 97] |
-| Gong | 11 | no | 56 % [35, 76] | 93 % [88, 97] |
-| Voice | 5 | no | 46 % [24, 71] | 81 % [68, 95] |
-| Drum | 20 | no | 15 % [3, 29] | 46 % [28, 64] |
+| Gong | 11 | no | 58 % [36, 78] | 94 % [89, 97] |
+| Voice | 5 | no | 47 % [24, 72] | 81 % [68, 95] |
+| Drum | 20 | no | 14 % [3, 28] | 46 % [28, 64] |
 | Shaker | 9 | no | 0 % [0, 0] | 49 % [23, 73] |
 | Rain stick | 4 | no | 3 % [0, 8] | 13 % [0, 38] |
 
@@ -106,16 +106,16 @@ Mean share of the sounding time with any colour, whole recordings, 95 % bootstra
 
 | Sound | Recordings | Should colour | No AI | AI, pretrained | AI, trained head |
 |---|---|---|---|---|---|
-| Singing bowl | 10 | yes | 91 % [83, 97] | 84 % [77, 90] | 84 % [78, 90] |
-| Bell | 18 | yes | 42 % [27, 57] | 28 % [15, 42] | 24 % [11, 39] |
+| Singing bowl | 10 | yes | 92 % [85, 97] | 86 % [79, 91] | 86 % [80, 91] |
+| Bell | 18 | yes | 43 % [26, 61] | 32 % [17, 49] | 28 % [13, 45] |
 | Tuning fork | 2 | yes | 93 % [89, 96] | 72 % [54, 89] | 61 % [54, 68] |
-| Gong | 11 | no | 65 % [44, 83] | 24 % [7, 44] | 17 % [1, 35] |
-| Voice | 5 | no | 46 % [24, 71] | 9 % [0, 23] | 3 % [0, 9] |
-| Drum | 20 | no | 14 % [3, 28] | 1 % [0, 2] | 1 % [0, 2] |
+| Gong | 11 | no | 66 % [44, 84] | 24 % [7, 44] | 18 % [1, 36] |
+| Voice | 5 | no | 48 % [25, 72] | 9 % [0, 23] | 3 % [0, 9] |
+| Drum | 20 | no | 14 % [2, 28] | 1 % [0, 2] | 1 % [0, 2] |
 | Shaker | 9 | no | 0 % [0, 0] | 0 % [0, 0] | 0 % [0, 0] |
 | Rain stick | 4 | no | 0 % [0, 0] | 0 % [0, 0] | 0 % [0, 0] |
 
-gate_bench.py, mn05_as@2s, 79 clips; the trained head gets 85 % of windows right on clips it never saw; 275 ms a window on the Mac's CPU.
+gate_bench.py, mn05_as@2s, 79 clips; the trained head gets 85 % of windows right on clips it never saw; 43 ms a window on the Mac's CPU.
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="figures/gate-dark.svg"><img src="figures/gate.svg" alt="Share of sounding time with a colour per class: no AI, the pretrained gate and the trained head." width="720"></picture>
 
@@ -125,40 +125,40 @@ The owner's recordings, segments a person checked (2 s labels), gate trained wit
 
 | Segments | Recordings | No AI | AI, pretrained | AI, trained head |
 |---|---|---|---|---|
-| Own segments, bowl or bell (should colour) | 10 | 69 % [53, 83] | 41 % [23, 61] | 63 % [47, 77] |
+| Own segments, bowl or bell (should colour) | 10 | 71 % [55, 86] | 43 % [24, 63] | 65 % [49, 79] |
 | Own segments, other sounds (should not) | 3 | 10 % [0, 21] | 0 % [0, 0] | 7 % [0, 21] |
 
 ### Flow against Strike
 
 | Measure | Flow | Strike |
 |---|---|---|
-| Strikes right (YouTube) | 71 % [43, 81] | 75 % [57, 81] |
-| First colour right | 71 % [43, 81] | 68 % [43, 76] |
-| Latency, median | 0.24 s [0.22, 0.25] | 0.11 s [0.05, 0.38] |
-| Singing bowls, colour share | 92 % [84, 97] | 95 % [89, 99] |
-| Gongs, colour share | 56 % [35, 76] | 93 % [88, 97] |
-| Sessions, changes a minute | 7.5 [4.9, 8.2] | 15.0 [11.4, 19.1] |
-| Concerts, changes a minute | 9.4 [5.1, 16.6] | 16.8 [11.4, 24.3] |
-| Sessions, colours under 3 s | 32 % [20, 38] | 56 % [48, 64] |
+| Strikes right (YouTube) | 75 % [57, 81] | 79 % [71, 81] |
+| First colour right | 75 % [57, 81] | 71 % [57, 76] |
+| Latency, median | 0.25 s [0.22, 0.28] | 0.10 s [0.05, 0.73] |
+| Singing bowls, colour share | 93 % [87, 98] | 98 % [94, 99] |
+| Gongs, colour share | 58 % [36, 78] | 94 % [89, 97] |
+| Sessions, changes a minute | 7.3 [4.2, 8.4] | 14.5 [11.3, 22.5] |
+| Concerts, changes a minute | 10.0 [5.3, 16.2] | 16.8 [11.5, 24.6] |
+| Sessions, colours under 3 s | 32 % [26, 38] | 58 % [49, 63] |
 
 ### Light
 
 | Recordings | Mode | n | Colours | Changes a minute, median | Colours under 3 s, median | Over 3 changes in 1 s | Most changes in 1 s |
 |---|---|---|---|---|---|---|---|
-| Commons, bowl-like sounds | Flow | 30 | 55 | 5.5 [3.3, 9.9] | 0 % [0, 25] | 0 of 30 | 2 |
-| Commons, bowl-like sounds | Strike | 30 | 142 | 11.8 [7.7, 17.6] | 50 % [4, 58] | 0 of 30 | 3 |
-| Commons, other sounds | Flow | 49 | 120 | 0.0 [0.0, 2.7] | 50 % [0, 85] | 0 of 49 | 2 |
-| Commons, other sounds | Strike | 49 | 467 | 14.3 [10.7, 23.3] | 81 % [63, 100] | 1 of 49 | 4 |
-| YouTube tune-ups | Flow | 5 | 104 | 4.3 [1.5, 8.7] | 32 % [14, 47] | 0 of 5 | 2 |
-| YouTube tune-ups | Strike | 5 | 270 | 12.7 [2.9, 14.7] | 43 % [29, 71] | 0 of 5 | 3 |
-| YouTube sessions on the body | Flow | 10 | 361 | 7.5 [4.9, 8.2] | 32 % [20, 38] | 0 of 10 | 3 |
-| YouTube sessions on the body | Strike | 10 | 1479 | 15.0 [11.4, 19.1] | 56 % [48, 64] | 2 of 10 | 4 |
-| YouTube concerts | Flow | 9 | 622 | 9.4 [5.1, 16.6] | 44 % [28, 47] | 0 of 9 | 3 |
-| YouTube concerts | Strike | 9 | 1630 | 16.8 [11.4, 24.3] | 63 % [52, 70] | 1 of 9 | 4 |
-| Own rounds, derived strike times | Flow | 6 | 47 | 8.9 [7.0, 14.5] | 83 % [73, 94] | 0 of 6 | 2 |
-| Own rounds, derived strike times | Strike | 6 | 82 | 14.5 [11.8, 25.4] | 80 % [65, 88] | 0 of 6 | 3 |
-| Own sessions | Flow | 14 | 114 | 8.9 [2.4, 12.3] | 40 % [22, 65] | 0 of 14 | 3 |
-| Own sessions | Strike | 14 | 243 | 13.8 [6.8, 26.0] | 71 % [60, 82] | 0 of 14 | 3 |
+| Commons, bowl-like sounds | Flow | 30 | 49 | 3.8 [2.4, 5.8] | 0 % [0, 0] | 0 of 30 | 2 |
+| Commons, bowl-like sounds | Strike | 30 | 144 | 11.2 [6.7, 18.3] | 50 % [0, 67] | 0 of 30 | 3 |
+| Commons, other sounds | Flow | 49 | 126 | 0.0 [0.0, 2.7] | 50 % [0, 80] | 0 of 49 | 2 |
+| Commons, other sounds | Strike | 49 | 490 | 13.4 [9.5, 23.3] | 78 % [67, 100] | 1 of 49 | 4 |
+| YouTube tune-ups | Flow | 5 | 107 | 5.5 [1.6, 7.3] | 30 % [16, 53] | 0 of 5 | 2 |
+| YouTube tune-ups | Strike | 5 | 275 | 13.5 [2.2, 15.4] | 44 % [31, 68] | 0 of 5 | 3 |
+| YouTube sessions on the body | Flow | 10 | 362 | 7.3 [4.2, 8.4] | 32 % [26, 38] | 0 of 10 | 3 |
+| YouTube sessions on the body | Strike | 10 | 1472 | 14.5 [11.3, 22.5] | 58 % [49, 63] | 2 of 10 | 4 |
+| YouTube concerts | Flow | 9 | 654 | 10.0 [5.3, 16.2] | 42 % [34, 49] | 0 of 9 | 3 |
+| YouTube concerts | Strike | 9 | 1687 | 16.8 [11.5, 24.6] | 62 % [52, 70] | 1 of 9 | 4 |
+| Own rounds, derived strike times | Flow | 6 | 49 | 9.4 [7.0, 16.1] | 83 % [75, 94] | 0 of 6 | 2 |
+| Own rounds, derived strike times | Strike | 6 | 82 | 15.1 [11.4, 26.6] | 78 % [66, 89] | 0 of 6 | 2 |
+| Own sessions | Flow | 14 | 117 | 6.3 [2.4, 13.4] | 45 % [22, 71] | 0 of 14 | 3 |
+| Own sessions | Strike | 14 | 252 | 13.2 [7.9, 27.3] | 71 % [62, 83] | 0 of 14 | 3 |
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="figures/light-dark.svg"><img src="figures/light.svg" alt="Colour changes a minute per group of recordings, Flow and Strike: median and 95 % bootstrap interval over recordings." width="720"></picture>
 
@@ -180,11 +180,11 @@ The owner's recordings, segments a person checked (2 s labels), gate trained wit
 
 ## Reproduce
 
-- chakra (ChakraA) commit `d7ddbb2537bb` (Evaluation pipeline: stages from data to a scientific report, reproducible), 1 uncommitted paths at the start (untracked only)
-- chakrav commit `78bfb56b88b0`
-- stages continued later (--run latest --only report --force, --run latest --only report --force, --run latest --only report --force), last at chakra commit `9a35d3f92d27`
-- config hash `c473ec5e2c85`; detector sources hash `4917f4824e88`; data hash `7b96ad157000`
-- tools: Python 3.14.9, numpy 2.5.3, torch not in the pipeline interpreter (the gate stage runs in run.python), ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers
+- chakra (ChakraA) commit `f72b136261c3` (README: flash safety comes from the rate (one kick per 2 s), not the small step; no WCAG compliance claimed (approach review 26.10.2026)), 4 uncommitted paths at the start (diff hash `066687eb334a`)
+- chakrav commit `974e38deb6ea`
+- stages continued later (--run latest --from report --force), last at chakra commit `6b34ca80a093`
+- config hash `c473ec5e2c85`; detector sources hash `a228ecec939b`; data hash `7b96ad157000`
+- tools: Python 3.14.9, numpy 2.5.4, torch 2.14.1, ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers
 - command: `tools/bench/pipeline.py` (stages fetch, own, detect, strikes, gate, light, report); `--run latest --from report --force` redraws only the report.
 
 ## Sources
@@ -199,5 +199,5 @@ Wikimedia Commons: 79 clips under free licences, listed with title, page, licenc
 |---|---|---|---|
 | -ar9vsmFhJU | Flow | 17 of 21 | xRoot xRoot xRoot +Sacr +Sacr +Sacr xSola +Sola +Sola +Hear +Hear +Hear +Thro +Thro +Thro +Thir +Thir +Thir +Crow +Crow +Crow |
 | -ar9vsmFhJU | Strike | 17 of 21 | xRoot xRoot xRoot +Sacr +Sacr +Sacr xSola +Sola +Sola +Hear +Hear +Hear +Thro +Thro +Thro +Thir +Thir +Thir +Crow +Crow +Crow |
-| u1KjQTAHSlo | Flow | 3 of 7 | +Crow +Thir xThro xHear xSola +Sacr xRoot |
-| u1KjQTAHSlo | Strike | 4 of 7 | +Crow +Thir xThro +Hear +Sola xSacr xRoot |
+| u1KjQTAHSlo | Flow | 4 of 7 | +Crow +Thir xThro +Hear xSola +Sacr xRoot |
+| u1KjQTAHSlo | Strike | 5 of 7 | +Crow +Thir xThro +Hear +Sola +Sacr xRoot |

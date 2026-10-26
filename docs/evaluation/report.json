@@ -1,6 +1,6 @@
 {
  "variant": "public",
- "run": "2026-10-26_103325",
+ "run": "2026-10-26_231334",
  "definitions": {},
  "results": {
   "strikes": {
@@ -8,57 +8,57 @@
     "flow": {
      "recordings": 2,
      "strikes": 14,
-     "right": 13,
+     "right": 14,
      "accuracy": {
-      "value": 0.9285714285714286,
-      "low": 0.8571428571428571,
+      "value": 1.0,
+      "low": 1.0,
       "high": 1.0
      },
      "accuracy_wilson": {
-      "low": 0.6853073044604219,
-      "high": 0.9872781138877085
+      "low": 0.7846829880728186,
+      "high": 1.0
      },
      "first_colour_right": {
-      "value": 0.9285714285714286,
-      "low": 0.8571428571428571,
+      "value": 1.0,
+      "low": 1.0,
       "high": 1.0
      },
      "latency_median_s": {
-      "value": 0.29,
+      "value": 0.286,
       "low": 0.278,
-      "high": 0.33
+      "high": 0.298
      },
-     "latency_n": 13,
-     "latency_mean_s": 0.3383076923076923,
-     "latency_p90_s": 0.48040000000000005,
+     "latency_n": 14,
+     "latency_mean_s": 0.30542857142857144,
+     "latency_p90_s": 0.40040000000000003,
      "already_shown": 0
     },
     "strike": {
      "recordings": 2,
      "strikes": 14,
-     "right": 13,
+     "right": 14,
      "accuracy": {
-      "value": 0.9285714285714286,
-      "low": 0.8571428571428571,
+      "value": 1.0,
+      "low": 1.0,
       "high": 1.0
      },
      "accuracy_wilson": {
-      "low": 0.6853073044604219,
-      "high": 0.9872781138877085
+      "low": 0.7846829880728186,
+      "high": 1.0
      },
      "first_colour_right": {
-      "value": 0.9285714285714286,
-      "low": 0.8571428571428571,
+      "value": 1.0,
+      "low": 1.0,
       "high": 1.0
      },
      "latency_median_s": {
-      "value": 0.015,
-      "low": 0.015,
-      "high": 0.027
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.015
      },
-     "latency_n": 12,
-     "latency_mean_s": 0.06,
-     "latency_p90_s": 0.17679999999999998,
+     "latency_n": 13,
+     "latency_mean_s": 0.05538461538461538,
+     "latency_p90_s": 0.1756,
      "already_shown": 1
     }
    },
@@ -66,35 +66,35 @@
     "flow": {
      "recordings": 4,
      "strikes": 28,
-     "right": 25,
+     "right": 26,
      "accuracy": {
-      "value": 0.8928571428571429,
+      "value": 0.9285714285714286,
       "low": 0.8571428571428571,
-      "high": 0.9642857142857143
+      "high": 1.0
      },
      "accuracy_wilson": {
-      "low": 0.7280377463234293,
-      "high": 0.9628823079452005
+      "low": 0.7735426157408214,
+      "high": 0.9801883525522292
      },
      "first_colour_right": {
-      "value": 0.8928571428571429,
+      "value": 0.9285714285714286,
       "low": 0.8571428571428571,
-      "high": 0.9642857142857143
+      "high": 1.0
      },
      "latency_median_s": {
-      "value": 0.296,
+      "value": 0.294,
       "low": 0.29,
-      "high": 0.322
+      "high": 0.31
      },
-     "latency_n": 24,
-     "latency_mean_s": 0.3475,
-     "latency_p90_s": 0.4512,
+     "latency_n": 25,
+     "latency_mean_s": 0.33,
+     "latency_p90_s": 0.3556,
      "already_shown": 1,
      "confident_only": {
       "strikes": 23,
       "accuracy": {
-       "value": 0.9130434782608695,
-       "low": 0.8333333333333334,
+       "value": 0.9565217391304348,
+       "low": 0.8846153846153846,
        "high": 1.0
       }
      }
@@ -113,18 +113,18 @@
       "high": 0.9936676435024582
      },
      "first_colour_right": {
-      "value": 0.9285714285714286,
-      "low": 0.8571428571428571,
+      "value": 0.9642857142857143,
+      "low": 0.8928571428571429,
       "high": 1.0
      },
      "latency_median_s": {
-      "value": 0.024,
-      "low": 0.005,
-      "high": 0.062
+      "value": 0.022,
+      "low": 0.001,
+      "high": 0.046
      },
      "latency_n": 26,
-     "latency_mean_s": 0.05876923076923078,
-     "latency_p90_s": 0.172,
+     "latency_mean_s": 0.04723076923076923,
+     "latency_p90_s": 0.15000000000000002,
      "already_shown": 1,
      "confident_only": {
       "strikes": 23,
@@ -198,34 +198,6 @@
     "flow": {
      "recordings": 1,
      "strikes": 7,
-     "right": 3,
-     "accuracy": {
-      "value": 0.42857142857142855,
-      "low": null,
-      "high": null
-     },
-     "accuracy_wilson": {
-      "low": 0.15821692226262685,
-      "high": 0.7495457695909742
-     },
-     "first_colour_right": {
-      "value": 0.42857142857142855,
-      "low": null,
-      "high": null
-     },
-     "latency_median_s": {
-      "value": 0.254,
-      "low": null,
-      "high": null
-     },
-     "latency_n": 3,
-     "latency_mean_s": 0.5766666666666667,
-     "latency_p90_s": 1.0444,
-     "already_shown": 0
-    },
-    "strike": {
-     "recordings": 1,
-     "strikes": 7,
      "right": 4,
      "accuracy": {
       "value": 0.5714285714285714,
@@ -237,51 +209,51 @@
       "high": 0.8417830777373732
      },
      "first_colour_right": {
-      "value": 0.42857142857142855,
+      "value": 0.5714285714285714,
       "low": null,
       "high": null
      },
      "latency_median_s": {
-      "value": 0.38,
+      "value": 0.28200000000000003,
       "low": null,
       "high": null
      },
      "latency_n": 4,
-     "latency_mean_s": 0.556,
-     "latency_p90_s": 1.1356000000000002,
+     "latency_mean_s": 0.435,
+     "latency_p90_s": 0.7524000000000001,
+     "already_shown": 0
+    },
+    "strike": {
+     "recordings": 1,
+     "strikes": 7,
+     "right": 5,
+     "accuracy": {
+      "value": 0.7142857142857143,
+      "low": null,
+      "high": null
+     },
+     "accuracy_wilson": {
+      "low": 0.35892909014821267,
+      "high": 0.9177828342909844
+     },
+     "first_colour_right": {
+      "value": 0.5714285714285714,
+      "low": null,
+      "high": null
+     },
+     "latency_median_s": {
+      "value": 0.726,
+      "low": null,
+      "high": null
+     },
+     "latency_n": 5,
+     "latency_mean_s": 0.6531999999999999,
+     "latency_p90_s": 1.226,
      "already_shown": 0
     }
    },
    "all": {
     "flow": {
-     "recordings": 8,
-     "strikes": 70,
-     "right": 58,
-     "accuracy": {
-      "value": 0.8285714285714286,
-      "low": 0.7142857142857143,
-      "high": 0.9285714285714286
-     },
-     "accuracy_wilson": {
-      "low": 0.7238313393501764,
-      "high": 0.8991237428798945
-     },
-     "first_colour_right": {
-      "value": 0.8285714285714286,
-      "low": 0.7142857142857143,
-      "high": 0.9285714285714286
-     },
-     "latency_median_s": {
-      "value": 0.29,
-      "low": 0.278,
-      "high": 0.322
-     },
-     "latency_n": 45,
-     "latency_mean_s": 0.37044444444444447,
-     "latency_p90_s": 0.5004,
-     "already_shown": 13
-    },
-    "strike": {
      "recordings": 8,
      "strikes": 70,
      "right": 61,
@@ -295,51 +267,51 @@
       "high": 0.9308597800875773
      },
      "first_colour_right": {
-      "value": 0.8285714285714286,
-      "low": 0.7142857142857143,
-      "high": 0.9464285714285714
+      "value": 0.8714285714285714,
+      "low": 0.7857142857142857,
+      "high": 0.9642857142857143
      },
      "latency_median_s": {
-      "value": 0.03,
-      "low": 0.022,
-      "high": 0.086
+      "value": 0.29,
+      "low": 0.278,
+      "high": 0.298
      },
-     "latency_n": 47,
-     "latency_mean_s": 0.10055319148936172,
-     "latency_p90_s": 0.18999999999999997,
+     "latency_n": 48,
+     "latency_mean_s": 0.34308333333333335,
+     "latency_p90_s": 0.4256000000000002,
+     "already_shown": 13
+    },
+    "strike": {
+     "recordings": 8,
+     "strikes": 70,
+     "right": 63,
+     "accuracy": {
+      "value": 0.9,
+      "low": 0.8333333333333334,
+      "high": 0.9821428571428571
+     },
+     "accuracy_wilson": {
+      "low": 0.8076687752123195,
+      "high": 0.9507113248938537
+     },
+     "first_colour_right": {
+      "value": 0.8714285714285714,
+      "low": 0.7767538265306123,
+      "high": 0.9821428571428571
+     },
+     "latency_median_s": {
+      "value": 0.026,
+      "low": 0.002,
+      "high": 0.066
+     },
+     "latency_n": 49,
+     "latency_mean_s": 0.11159183673469389,
+     "latency_p90_s": 0.18760000000000007,
      "already_shown": 14
     }
    },
    "all_public": {
     "flow": {
-     "recordings": 2,
-     "strikes": 28,
-     "right": 20,
-     "accuracy": {
-      "value": 0.7142857142857143,
-      "low": 0.42857142857142855,
-      "high": 0.8095238095238095
-     },
-     "accuracy_wilson": {
-      "low": 0.529403642629825,
-      "high": 0.8474618415167003
-     },
-     "first_colour_right": {
-      "value": 0.7142857142857143,
-      "low": 0.42857142857142855,
-      "high": 0.8095238095238095
-     },
-     "latency_median_s": {
-      "value": 0.244,
-      "low": 0.222,
-      "high": 0.254
-     },
-     "latency_n": 8,
-     "latency_mean_s": 0.4915,
-     "latency_p90_s": 1.2732,
-     "already_shown": 12
-    },
-    "strike": {
      "recordings": 2,
      "strikes": 28,
      "right": 21,
@@ -353,18 +325,46 @@
       "high": 0.8732366505779922
      },
      "first_colour_right": {
-      "value": 0.6785714285714286,
-      "low": 0.42857142857142855,
+      "value": 0.75,
+      "low": 0.5714285714285714,
+      "high": 0.8095238095238095
+     },
+     "latency_median_s": {
+      "value": 0.254,
+      "low": 0.222,
+      "high": 0.28200000000000003
+     },
+     "latency_n": 9,
+     "latency_mean_s": 0.438,
+     "latency_p90_s": 1.0228000000000002,
+     "already_shown": 12
+    },
+    "strike": {
+     "recordings": 2,
+     "strikes": 28,
+     "right": 22,
+     "accuracy": {
+      "value": 0.7857142857142857,
+      "low": 0.7142857142857143,
+      "high": 0.8095238095238095
+     },
+     "accuracy_wilson": {
+      "low": 0.6046105292072612,
+      "high": 0.8978767829881058
+     },
+     "first_colour_right": {
+      "value": 0.7142857142857143,
+      "low": 0.5714285714285714,
       "high": 0.7619047619047619
      },
      "latency_median_s": {
-      "value": 0.11,
+      "value": 0.098,
       "low": 0.046,
-      "high": 0.38
+      "high": 0.726
      },
-     "latency_n": 9,
-     "latency_mean_s": 0.2753333333333334,
-     "latency_p90_s": 0.7716000000000002,
+     "latency_n": 10,
+     "latency_mean_s": 0.352,
+     "latency_p90_s": 1.0659999999999998,
      "already_shown": 12
     }
    }
@@ -419,52 +419,52 @@
    "youtube/u1KjQTAHSlo": {
     "flow": {
      "segments": 7,
-     "mean_share": 0.5435571428571428,
+     "mean_share": 0.6026142857142858,
      "per_segment": [
       0.8481,
       0.7903,
       0.4508,
-      0.4335,
+      0.8378,
       0.3924,
-      0.7903,
+      0.7994,
       0.0995
      ]
     },
     "strike": {
      "segments": 7,
-     "mean_share": 0.5140714285714285,
+     "mean_share": 0.555,
      "per_segment": [
-      0.4861,
+      0.762,
       0.7608,
       0.4016,
-      0.7473,
-      0.7089,
-      0.2948,
-      0.199
+      0.75,
+      0.7057,
+      0.3009,
+      0.204
      ]
     }
    },
    "youtube/8Qhh2VF1Oz4": {
     "flow": {
      "segments": 5,
-     "mean_share": 0.86828,
+     "mean_share": 0.87174,
      "per_segment": [
       0.9795,
       0.9824,
       0.8279,
       0.8948,
-      0.6568
+      0.6741
      ]
     },
     "strike": {
      "segments": 5,
-     "mean_share": 0.7251799999999999,
+     "mean_share": 0.7943,
      "per_segment": [
-      0.768,
+      0.873,
       0.8456,
-      0.5234,
-      0.8429,
-      0.646
+      0.7189,
+      0.8779,
+      0.6561
      ]
     }
    }
@@ -474,28 +474,28 @@
     "recordings": 10,
     "should_colour": true,
     "flow": {
-     "value": 0.91754,
-     "low": 0.8432637500000001,
-     "high": 0.97271025
+     "value": 0.9341100000000001,
+     "low": 0.8742885,
+     "high": 0.9750504999999998
     },
     "strike": {
-     "value": 0.9454800000000001,
-     "low": 0.8863095,
-     "high": 0.98891
+     "value": 0.97502,
+     "low": 0.9449097499999999,
+     "high": 0.9929902500000001
     }
    },
    "bell": {
     "recordings": 18,
     "should_colour": true,
     "flow": {
-     "value": 0.43475555555555556,
-     "low": 0.29624736111111105,
-     "high": 0.5721961111111111
+     "value": 0.4498166666666667,
+     "low": 0.27094986111111113,
+     "high": 0.6299733333333333
     },
     "strike": {
-     "value": 0.8450055555555557,
-     "low": 0.7748941666666668,
-     "high": 0.902006388888889
+     "value": 0.8720500000000001,
+     "low": 0.8228333333333334,
+     "high": 0.9179011111111111
     }
    },
    "tuning_fork": {
@@ -516,23 +516,23 @@
     "recordings": 11,
     "should_colour": false,
     "flow": {
-     "value": 0.5611818181818181,
-     "low": 0.3519327272727273,
-     "high": 0.7629129545454545
+     "value": 0.5750545454545454,
+     "low": 0.3624165909090909,
+     "high": 0.7790515909090909
     },
     "strike": {
-     "value": 0.9348636363636363,
-     "low": 0.8841804545454545,
-     "high": 0.9712004545454545
+     "value": 0.9398454545454545,
+     "low": 0.8888811363636363,
+     "high": 0.9742727272727273
     }
    },
    "voice": {
     "recordings": 5,
     "should_colour": false,
     "flow": {
-     "value": 0.4582,
-     "low": 0.2369840000000003,
-     "high": 0.7087549999999995
+     "value": 0.4744,
+     "low": 0.2417780000000002,
+     "high": 0.7153624999999977
     },
     "strike": {
      "value": 0.8141200000000002,
@@ -544,14 +544,14 @@
     "recordings": 20,
     "should_colour": false,
     "flow": {
-     "value": 0.15065,
-     "low": 0.033284999999999995,
-     "high": 0.293910625
+     "value": 0.142775,
+     "low": 0.02978,
+     "high": 0.28380237499999994
     },
     "strike": {
-     "value": 0.4608650000000001,
-     "low": 0.2825450000000001,
-     "high": 0.63606225
+     "value": 0.46116,
+     "low": 0.28290450000000006,
+     "high": 0.6365715000000001
     }
    },
    "shaker": {
@@ -585,44 +585,44 @@
   },
   "gate": {
    "model": "mn05_as@2s",
-   "ms_per_window": 275.20512498449534,
+   "ms_per_window": 42.92616699996188,
    "window_accuracy_trained": 0.8518815052041633,
    "clips": 79,
    "classes": {
     "singing_bowl": {
      "recordings": 10,
      "no_ai": {
-      "value": 0.9092178929649325,
-      "low": 0.8266608167320836,
-      "high": 0.9718046672517381
+      "value": 0.9243851703413373,
+      "low": 0.8496078882877321,
+      "high": 0.9729354034133363
      },
      "ai_pretrained": {
-      "value": 0.8383384754850889,
-      "low": 0.7715971258635066,
-      "high": 0.8977711158940144
+      "value": 0.8562756952160306,
+      "low": 0.7905569119176474,
+      "high": 0.9104105143694512
      },
      "ai_trained": {
-      "value": 0.8444360364606986,
-      "low": 0.7773703965430026,
-      "high": 0.9024382620228266
+      "value": 0.8623732561916402,
+      "low": 0.7964462906397657,
+      "high": 0.9139588441328883
      }
     },
     "bell": {
      "recordings": 18,
      "no_ai": {
-      "value": 0.42005120550100605,
-      "low": 0.2745084846472379,
-      "high": 0.5654082034071852
+      "value": 0.43394004496450916,
+      "low": 0.2573322967042063,
+      "high": 0.6129211755170891
      },
      "ai_pretrained": {
-      "value": 0.2772326912420795,
-      "low": 0.14688794485938064,
-      "high": 0.4169854504641624
+      "value": 0.3242579903339433,
+      "low": 0.16810465650054066,
+      "high": 0.49300335117179306
      },
      "ai_trained": {
-      "value": 0.24480755065030108,
-      "low": 0.10991633800049079,
-      "high": 0.3941048422998574
+      "value": 0.2805414580159906,
+      "low": 0.1274857811596942,
+      "high": 0.4458080429987309
      }
     },
     "tuning_fork": {
@@ -646,27 +646,27 @@
     "gong": {
      "recordings": 11,
      "no_ai": {
-      "value": 0.6494626244398033,
-      "low": 0.4392521487964469,
-      "high": 0.8331085817742466
+      "value": 0.6551820909306995,
+      "low": 0.4414251792594415,
+      "high": 0.841911302535438
      },
      "ai_pretrained": {
-      "value": 0.23834490621603824,
+      "value": 0.23973283126808545,
       "low": 0.07212625396330372,
-      "high": 0.4363380447189375
+      "high": 0.43815476559430555
      },
      "ai_trained": {
-      "value": 0.1713579585707133,
-      "low": 0.014743156471781005,
-      "high": 0.347782972351072
+      "value": 0.1751937826877599,
+      "low": 0.012039540385265292,
+      "high": 0.3617994562749523
      }
     },
     "voice": {
      "recordings": 5,
      "no_ai": {
-      "value": 0.4638113567586105,
-      "low": 0.24089027722146508,
-      "high": 0.7149226363602986
+      "value": 0.48050270534696377,
+      "low": 0.2465628993969773,
+      "high": 0.7220681934829126
      },
      "ai_pretrained": {
       "value": 0.08639977759243814,
@@ -674,17 +674,17 @@
       "high": 0.2276841812621629
      },
      "ai_trained": {
-      "value": 0.028901734104046246,
+      "value": 0.030057803468208095,
       "low": 0.0,
-      "high": 0.08670520231213874
+      "high": 0.09017341040462427
      }
     },
     "drum": {
      "recordings": 20,
      "no_ai": {
-      "value": 0.14032771172225728,
-      "low": 0.02702702702702703,
-      "high": 0.28262562324080137
+      "value": 0.13627365766820326,
+      "low": 0.022972972972972974,
+      "high": 0.2757076579189964
      },
      "ai_pretrained": {
       "value": 0.005844155844155844,
@@ -738,37 +738,37 @@
     "should_colour": {
      "recordings": 30,
      "no_ai": {
-      "value": 0.6167722621030488,
-      "low": 0.4904721559482848,
-      "high": 0.7367517815166825
+      "value": 0.6301613249066188,
+      "low": 0.4887947955849327,
+      "high": 0.763219934804585
      },
      "ai_pretrained": {
-      "value": 0.4934549798740739,
-      "low": 0.36469398120789065,
-      "high": 0.6189114750070662
+      "value": 0.5276492325728394,
+      "low": 0.38986962382502244,
+      "high": 0.6575610922009235
      },
      "ai_trained": {
-      "value": 0.46915956361053307,
-      "low": 0.335896203756417,
-      "high": 0.6021336905336093
+      "value": 0.49657898127359407,
+      "low": 0.3591365255957303,
+      "high": 0.6316224971799395
      }
     },
     "should_not": {
      "recordings": 49,
      "no_ai": {
-      "value": 0.2504020385117558,
-      "low": 0.1518583633856625,
-      "high": 0.35672367964818263
+      "value": 0.25173448327217507,
+      "low": 0.1525023609000606,
+      "high": 0.35772988554988405
      },
      "ai_pretrained": {
-      "value": 0.06470767292289242,
-      "low": 0.019652723767812425,
-      "high": 0.12073628816419205
+      "value": 0.06501924793457647,
+      "low": 0.019668012148440387,
+      "high": 0.12151054863189446
      },
      "ai_trained": {
-      "value": 0.04371429239494266,
-      "low": 0.007542676467424956,
-      "high": 0.09277190378285792
+      "value": 0.04469336202980637,
+      "low": 0.006667680310787366,
+      "high": 0.09554147931409603
      }
     }
    }
@@ -777,19 +777,19 @@
    "own_bowl": {
     "recordings": 10,
     "no_ai": {
-     "value": 0.6898986912710006,
-     "low": 0.529076788106721,
-     "high": 0.8347285616515268
+     "value": 0.7141477755200849,
+     "low": 0.5483449661652215,
+     "high": 0.8642596125765016
     },
     "ai_pretrained": {
-     "value": 0.4143214435652053,
-     "low": 0.2304787709249388,
-     "high": 0.6071122266659951
+     "value": 0.4273983666421284,
+     "low": 0.23541403848089895,
+     "high": 0.6290500018427789
     },
     "ai_trained": {
-     "value": 0.6284353197894561,
-     "low": 0.47190940469855736,
-     "high": 0.765599828972134
+     "value": 0.6508529022070386,
+     "low": 0.49002256837583597,
+     "high": 0.7881556874427057
     }
    },
    "own_other": {
@@ -816,37 +816,37 @@
     "recordings": 30,
     "flow": {
      "changes_per_min_median": {
-      "value": 5.55,
-      "low": 3.3,
-      "high": 9.9
+      "value": 3.8,
+      "low": 2.35,
+      "high": 5.75
      },
      "short_share_median": {
       "value": 0.0,
       "low": 0.0,
-      "high": 0.25
+      "high": 0.0
      },
-     "colours": 55,
+     "colours": 49,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 2,
-     "hold_median_s_median": 7.125
+     "hold_median_s_median": 9.1
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 11.75,
-      "low": 7.65,
-      "high": 17.65
+      "value": 11.2,
+      "low": 6.65,
+      "high": 18.299999999999997
      },
      "short_share_median": {
       "value": 0.5,
-      "low": 0.0385,
-      "high": 0.5835
+      "low": 0.0,
+      "high": 0.667
      },
-     "colours": 142,
+     "colours": 144,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 3.875
+     "hold_median_s_median": 4.3
     }
    },
    "commons/other": {
@@ -860,137 +860,137 @@
      "short_share_median": {
       "value": 0.5,
       "low": 0.0,
-      "high": 0.846
+      "high": 0.8
      },
-     "colours": 120,
+     "colours": 126,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 2,
-     "hold_median_s_median": 3.3
+     "hold_median_s_median": 3.2
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 14.3,
-      "low": 10.7,
+      "value": 13.4,
+      "low": 9.5,
       "high": 23.3
      },
      "short_share_median": {
-      "value": 0.8105,
-      "low": 0.6335,
+      "value": 0.7845,
+      "low": 0.667,
       "high": 1.0
      },
-     "colours": 467,
+     "colours": 490,
      "recordings_over_3_per_s_in_1s": 1,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 4,
-     "hold_median_s_median": 1.85
+     "hold_median_s_median": 1.8
     }
    },
    "youtube/tuneup": {
     "recordings": 5,
     "flow": {
      "changes_per_min_median": {
-      "value": 4.3,
-      "low": 1.5,
-      "high": 8.7
+      "value": 5.5,
+      "low": 1.6,
+      "high": 7.3
      },
      "short_share_median": {
-      "value": 0.316,
-      "low": 0.143,
-      "high": 0.467
+      "value": 0.3,
+      "low": 0.158,
+      "high": 0.528
      },
-     "colours": 104,
+     "colours": 107,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 2,
-     "hold_median_s_median": 5.5
+     "hold_median_s_median": 8.3
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 12.7,
-      "low": 2.9,
-      "high": 14.7
+      "value": 13.5,
+      "low": 2.2,
+      "high": 15.4
      },
      "short_share_median": {
-      "value": 0.429,
-      "low": 0.286,
-      "high": 0.71
+      "value": 0.435,
+      "low": 0.312,
+      "high": 0.684
      },
-     "colours": 270,
+     "colours": 275,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 3.8
+     "hold_median_s_median": 3.5
     }
    },
    "youtube/on_body": {
     "recordings": 10,
     "flow": {
      "changes_per_min_median": {
-      "value": 7.45,
-      "low": 4.9,
-      "high": 8.25
+      "value": 7.3,
+      "low": 4.25,
+      "high": 8.4
      },
      "short_share_median": {
-      "value": 0.3195,
-      "low": 0.2,
-      "high": 0.375
+      "value": 0.3225,
+      "low": 0.257,
+      "high": 0.3755
      },
-     "colours": 361,
+     "colours": 362,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 5.525
+     "hold_median_s_median": 5.325
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 15.0,
-      "low": 11.4,
-      "high": 19.1
+      "value": 14.5,
+      "low": 11.3,
+      "high": 22.5
      },
      "short_share_median": {
-      "value": 0.5605,
-      "low": 0.477,
-      "high": 0.6350624999999991
+      "value": 0.584,
+      "low": 0.494,
+      "high": 0.6301124999999984
      },
-     "colours": 1479,
+     "colours": 1472,
      "recordings_over_3_per_s_in_1s": 2,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 4,
-     "hold_median_s_median": 2.575
+     "hold_median_s_median": 2.5250000000000004
     }
    },
    "youtube/concert": {
     "recordings": 9,
     "flow": {
      "changes_per_min_median": {
-      "value": 9.4,
-      "low": 5.1,
-      "high": 16.6
+      "value": 10.0,
+      "low": 5.3,
+      "high": 16.2
      },
      "short_share_median": {
-      "value": 0.436,
-      "low": 0.283,
-      "high": 0.469
+      "value": 0.425,
+      "low": 0.34,
+      "high": 0.494
      },
-     "colours": 622,
+     "colours": 654,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 3.25
+     "hold_median_s_median": 3.3
     },
     "strike": {
      "changes_per_min_median": {
       "value": 16.8,
-      "low": 11.4,
-      "high": 24.3
+      "low": 11.5,
+      "high": 24.6
      },
      "short_share_median": {
-      "value": 0.626,
-      "low": 0.525,
-      "high": 0.702
+      "value": 0.623,
+      "low": 0.524,
+      "high": 0.704
      },
-     "colours": 1630,
+     "colours": 1687,
      "recordings_over_3_per_s_in_1s": 1,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 4,
@@ -1001,109 +1001,109 @@
     "recordings": 6,
     "flow": {
      "changes_per_min_median": {
-      "value": 8.850000000000001,
+      "value": 9.350000000000001,
       "low": 7.0,
-      "high": 14.5
+      "high": 16.15
      },
      "short_share_median": {
       "value": 0.8265,
-      "low": 0.732,
+      "low": 0.746,
       "high": 0.9375
      },
-     "colours": 47,
+     "colours": 49,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 2,
-     "hold_median_s_median": 1.3250000000000002
+     "hold_median_s_median": 1.275
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 14.5,
-      "low": 11.85,
-      "high": 25.4
+      "value": 15.100000000000001,
+      "low": 11.45,
+      "high": 26.55
      },
      "short_share_median": {
-      "value": 0.798,
-      "low": 0.6515,
-      "high": 0.8845000000000001
+      "value": 0.784,
+      "low": 0.6639999999999999,
+      "high": 0.89
      },
      "colours": 82,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
-     "max_changes_1s": 3,
-     "hold_median_s_median": 1.3250000000000002
+     "max_changes_1s": 2,
+     "hold_median_s_median": 1.35
     }
    },
    "own/session": {
     "recordings": 14,
     "flow": {
      "changes_per_min_median": {
-      "value": 8.9,
+      "value": 6.35,
       "low": 2.4,
-      "high": 12.3
+      "high": 13.4
      },
      "short_share_median": {
-      "value": 0.40349999999999997,
-      "low": 0.225,
-      "high": 0.6515
+      "value": 0.45,
+      "low": 0.21550000000000002,
+      "high": 0.7070000000000001
      },
-     "colours": 114,
+     "colours": 117,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 3.075
+     "hold_median_s_median": 3.275
     },
     "strike": {
      "changes_per_min_median": {
-      "value": 13.8,
-      "low": 6.85,
-      "high": 26.0
+      "value": 13.25,
+      "low": 7.9,
+      "high": 27.3
      },
      "short_share_median": {
-      "value": 0.706,
-      "low": 0.6,
-      "high": 0.824
+      "value": 0.714,
+      "low": 0.622,
+      "high": 0.833
      },
-     "colours": 243,
+     "colours": 252,
      "recordings_over_3_per_s_in_1s": 0,
      "recordings_over_3_per_s_in_10s": 0,
      "max_changes_1s": 3,
-     "hold_median_s_median": 1.85
+     "hold_median_s_median": 1.8
     }
    }
   },
   "flow_vs_strike": {
    "Strikes right (YouTube)": {
-    "flow": "71 % [43, 81]",
-    "strike": "75 % [57, 81]"
+    "flow": "75 % [57, 81]",
+    "strike": "79 % [71, 81]"
    },
    "First colour right": {
-    "flow": "71 % [43, 81]",
-    "strike": "68 % [43, 76]"
+    "flow": "75 % [57, 81]",
+    "strike": "71 % [57, 76]"
    },
    "Latency, median": {
-    "flow": "0.24 s [0.22, 0.25]",
-    "strike": "0.11 s [0.05, 0.38]"
+    "flow": "0.25 s [0.22, 0.28]",
+    "strike": "0.10 s [0.05, 0.73]"
    },
    "Singing bowls, colour share": {
-    "flow": "92 % [84, 97]",
-    "strike": "95 % [89, 99]"
+    "flow": "93 % [87, 98]",
+    "strike": "98 % [94, 99]"
    },
    "Gongs, colour share": {
-    "flow": "56 % [35, 76]",
-    "strike": "93 % [88, 97]"
+    "flow": "58 % [36, 78]",
+    "strike": "94 % [89, 97]"
    },
    "Sessions, changes a minute": {
-    "flow": "7.5 [4.9, 8.2]",
-    "strike": "15.0 [11.4, 19.1]"
+    "flow": "7.3 [4.2, 8.4]",
+    "strike": "14.5 [11.3, 22.5]"
    },
    "Concerts, changes a minute": {
-    "flow": "9.4 [5.1, 16.6]",
-    "strike": "16.8 [11.4, 24.3]"
+    "flow": "10.0 [5.3, 16.2]",
+    "strike": "16.8 [11.5, 24.6]"
    },
    "Sessions, colours under 3 s": {
-    "flow": "32 % [20, 38]",
-    "strike": "56 % [48, 64]"
+    "flow": "32 % [26, 38]",
+    "strike": "58 % [49, 63]"
    }
   },
   "per_recording": {
@@ -1478,10 +1478,10 @@
      {
       "t": 219.29,
       "chakra": 3,
-      "right": false,
+      "right": true,
       "already": false,
-      "first_right": false,
-      "latency_s": null
+      "first_right": true,
+      "latency_s": 0.31
      },
      {
       "t": 257.274,
@@ -1497,7 +1497,7 @@
       "right": true,
       "already": false,
       "first_right": true,
-      "latency_s": 1.242
+      "latency_s": 0.942
      },
      {
       "t": 321.018,
@@ -1515,7 +1515,7 @@
       "right": true,
       "already": false,
       "first_right": true,
-      "latency_s": 0.134
+      "latency_s": 1.034
      },
      {
       "t": 144.746,
@@ -1547,15 +1547,15 @@
       "right": true,
       "already": false,
       "first_right": false,
-      "latency_s": 0.626
+      "latency_s": 0.726
      },
      {
       "t": 288.058,
       "chakra": 1,
-      "right": false,
+      "right": true,
       "already": false,
-      "first_right": false,
-      "latency_s": null
+      "first_right": true,
+      "latency_s": 0.042
      },
      {
       "t": 321.018,
@@ -1661,16 +1661,16 @@
  "provenance": {
   "git": {
    "chakra": {
-    "commit": "d7ddbb2537bb666665cf78599d48eafeb55a2026",
-    "subject": "Evaluation pipeline: stages from data to a scientific report, reproducible",
-    "diff_sha256": null
+    "commit": "f72b136261c349d8a1cbdb19e4fe5e4cc9ee2100",
+    "subject": "README: flash safety comes from the rate (one kick per 2 s), not the small step; no WCAG compliance claimed (approach review 26.10.2026)",
+    "diff_sha256": "066687eb334a4214cabf42a48818d0d0a8fc0df6d0ac5ac99b62e89d85055682"
    },
    "chakrav": {
-    "commit": "78bfb56b88b075fc7311d982357825f9f8c52df9",
-    "subject": "Videos are streamed through their best window, not the centre"
+    "commit": "974e38deb6eac4f5afde9e66a2dbe6ba320e481a",
+    "subject": "README (EN, DE) and light doc: flash safety comes from the rate, a kick on red is a red flash however small and room lamps fill the view; no WCAG compliance claimed (APPROACH_REVIEW section 4)"
    }
   },
-  "dirty_files": 1,
+  "dirty_files": 4,
   "config_sha256": "c473ec5e2c85084488c219d67641e806daab4d34bfb993ae7f19bf23fb00a9be",
   "data": {
    "commons": {
@@ -1690,14 +1690,14 @@
   "tools": {
    "python": "3.14.9",
    "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
-   "numpy": "2.5.3",
-   "scipy": "1.17.1",
-   "matplotlib": "3.10.9",
-   "scikit-learn": "1.8.0",
-   "torch": null,
+   "numpy": "2.5.4",
+   "scipy": "1.18.1",
+   "matplotlib": "3.11.2",
+   "scikit-learn": "1.9.1",
+   "torch": "2.14.1",
    "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
    "cc": "Apple clang version 21.0.0 (clang-2100.3.34.2)"
   },
-  "detector_sources_sha256": "4917f4824e88221625932ceec16fa38d866f42816d4ddac349f21bd41b11f9ea"
+  "detector_sources_sha256": "a228ecec939beca387e4ac9b2d9f65f7fb7a399123e42b93b4eb20385d0151b0"
  }
 }
