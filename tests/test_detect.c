@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Host test of chakra_detect.c: synthetic tones in, chakras out. Run with tests/run.sh.
 // Covers each note class at A = 432 Hz across three octaves, a bowl-like tone with
-// inharmonic partials, Solfeggio mode, noise and silence (no chakra), the hold time, and the
+// inharmonic partials, an inharmonic bowl whose second mode is louder than its fundamental (bowl
+// modes), a beating bowl that must not bring false strikes (SuperFlux), Solfeggio mode, noise and silence (no chakra), the hold time, and the
 // spectrum bars (one a semitone, A2 to D6: each note leads its own band, silence lets them fall to zero),
 // and a quieter bowl struck over a louder one that still rings (the onset path).
 #include <math.h>
@@ -92,6 +93,47 @@ static void play_strikes(chakra_detect_t *d, const strike_t *s, int ns, float kn
     }
 }
 
+/* A struck bowl whose modes are doublets: mode m at ratio[m] x f, two equal halves split[m] Hz apart,
+ * so each beats fully at that rate, ringing down with time constant tau[m]; struck at `start`, its
+ * pitch wobbling by +-wobble_ct cents at wobble_hz (a held bowl that swings, a doublet's apparent
+ * pitch moving: the partials drift to and fro across bins). Counts the strikes the detector reports
+ * (reading.onset) before and after `quiet_from` seconds and returns the reading at the end. */
+static chakra_reading_t play_beating(chakra_detect_t *d, float f, const float *ratio, const float *amp, const float *split,
+                                     const float *tau, int modes, float wobble_hz, float wobble_ct, float start,
+                                     float quiet_from, float seconds, int *onsets_before, int *onsets_after)
+{
+    static float buf[CHAKRA_HOP];
+    double phase[8][2] = {{0.0}};
+    unsigned seed = 11;
+    chakra_reading_t r = {0};
+    *onsets_before = *onsets_after = 0;
+    const int hops = (int)(seconds * CHAKRA_RATE / CHAKRA_HOP);
+    for (int h = 0; h < hops; ++h) {
+        for (int i = 0; i < CHAKRA_HOP; ++i) {
+            const double u = (double)(h * CHAKRA_HOP + i) / CHAKRA_RATE - start;
+            float v = 0.0f;
+            if (u >= 0.0) {
+                const double attack = u < 0.01 ? u / 0.01 : 1.0;
+                const double bend = pow(2.0, wobble_ct / 1200.0 * sin(2.0 * M_PI * wobble_hz * u));
+                for (int m = 0; m < modes && m < 8; ++m) {
+                    const double fm = f * ratio[m] * bend;
+                    phase[m][0] += 2.0 * M_PI * fm / CHAKRA_RATE;
+                    phase[m][1] += 2.0 * M_PI * (fm + split[m]) / CHAKRA_RATE;
+                    v += (float)(attack * amp[m] * 0.5 * exp(-u / tau[m]) * (sin(phase[m][0]) + sin(phase[m][1] + 1.0)));
+                }
+            }
+            seed = seed * 1103515245u + 12345u;
+            buf[i] = v + 0.0005f * ((float)((seed >> 8) & 0xFFFF) / 32768.0f - 1.0f);
+        }
+        chakra_detect_feed(d, buf, CHAKRA_HOP, &r);
+        const float t = (float)((h + 1) * CHAKRA_HOP) / CHAKRA_RATE;
+        if (r.onset) {
+            *(t < quiet_from ? onsets_before : onsets_after) += 1;
+        }
+    }
+    return r;
+}
+
 int main(void)
 {
     static const int EXPECT[12] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6};
@@ -121,6 +163,32 @@ int main(void)
         char what[96];
         snprintf(what, sizeof(what), "bowl %.1f Hz -> heart (got %d, %.1f Hz)", f, r.chakra, r.freq_hz);
         check(r.chakra == 3, what);
+    }
+
+    /* An inharmonic bowl, modes 1 : 2.7 : 5.2, its second mode twice as loud as its fundamental and the
+     * fundamental beating (a doublet 1.2 Hz apart), as a bowl struck at the rim sounds. A3 = 220 Hz,
+     * third eye at A = 440; its second mode (594 Hz, D5) would read as sacral. The harmonic sum alone
+     * takes the second mode (no 2x, no 4x, and 2.7 is far from 3); the bowl modes find the
+     * fundamental, and its confidence counts the modes as the tone. */
+    {
+        static const float ratios[] = {1.0f, 1.00545f, 2.7f, 5.2f}, amps[] = {0.1f, 0.06f, 0.3f, 0.12f};
+        for (int bowl = 0; bowl <= 1; ++bowl) {
+            chakra_detect_config_t ic;
+            chakra_detect_defaults(&ic);
+            ic.bowl_modes = bowl;
+            chakra_detect_t *id = chakra_detect_create(&ic);
+            chakra_reading_t r = play(id, 220.0f, ratios, amps, 4, 0.003f, 1.5f);
+            char what[128];
+            if (bowl) {
+                snprintf(what, sizeof(what), "inharmonic bowl 1 : 2.7 : 5.2 at 220 Hz -> third eye at its fundamental (got %d, %.1f Hz, conf %.2f)",
+                         r.chakra, r.freq_hz, r.confidence);
+                check(r.chakra == 5 && fabsf(r.freq_hz - 220.0f) < 3.0f, what);
+            } else {
+                printf("info: inharmonic bowl, harmonic sum only: chakra %d, %.1f Hz, conf %.2f\n", r.chakra, r.freq_hz,
+                       r.confidence);
+            }
+            chakra_detect_destroy(id);
+        }
     }
 
     /* A hummed voice: fundamental with harmonics 2..5. D3 = sacral. */
@@ -192,6 +260,35 @@ int main(void)
             snprintf(what, sizeof(what), "%s: a knock over the ringing C3 -> still root (got %d, %d)", MODE[m], shown[0], shown[1]);
             check(shown[0] == 0 && shown[1] == 0, what);
             chakra_detect_destroy(sd);
+        }
+    }
+
+    /* A bowl that rings on and beats: five modes (1 : 2.7 : 5.2 : 8.6 : 12.4), each a doublet beating
+     * fully (1.3 to 8 Hz), its pitch wobbling +-30 cents twice a second, struck once at 1.5 s and
+     * ringing for 12 s. The plain flux counts the strike twice and finds one more in the ringing;
+     * with SuperFlux the strike is found once, the wobble and beats bring no further strike, and it
+     * stays on its chakra. 150 Hz is D3 +37 ct at A = 440, sacral. */
+    {
+        static const float ratio[] = {1.0f, 2.7f, 5.2f, 8.6f, 12.4f}, amp[] = {0.3f, 0.2f, 0.1f, 0.06f, 0.04f},
+                           split[] = {1.3f, 3.1f, 4.7f, 6.0f, 8.0f}, tau[] = {10.0f, 6.0f, 4.0f, 3.0f, 2.0f};
+        for (int sf = 0; sf <= 1; ++sf) {
+            chakra_detect_config_t bc;
+            chakra_detect_defaults(&bc);
+            bc.threshold_db = -70.0f;
+            bc.superflux = sf;
+            chakra_detect_t *bd = chakra_detect_create(&bc);
+            int before, after;
+            chakra_reading_t r = play_beating(bd, 150.0f, ratio, amp, split, tau, 5, 2.0f, 30.0f, 1.5f, 2.2f, 13.5f, &before, &after);
+            char what[160];
+            if (sf) {
+                snprintf(what, sizeof(what), "beating bowl: its strike found (got %d), no strike from its beats (got %d), still sacral (got %d)",
+                         before, after, r.chakra);
+                check(before == 1 && after == 0 && r.chakra == 1, what);
+            } else {
+                printf("info: beating bowl, plain flux: %d strike(s) at the strike, %d from the beats, chakra %d\n", before,
+                       after, r.chakra);
+            }
+            chakra_detect_destroy(bd);
         }
     }
 

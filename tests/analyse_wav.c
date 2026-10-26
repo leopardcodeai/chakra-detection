@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Runs chakra_detect.c over a recording and prints when which chakra was locked.
 //
-// Usage: analyse_wav FILE.wav [notes|solfeggio|bowls F0,F1,...,F6] [--a4 440]
+// Usage: analyse_wav FILE.wav [notes|solfeggio|bowls F0,F1,...,F6] [--a4 440] [--lock MS MS]
+//        [--bowl-modes on|off] [--superflux on|off]
 // The file must be 16 kHz mono signed 16-bit PCM (tests/analyse.sh converts anything with
 // ffmpeg). Output: one line per locked stretch, "start-end  chakra  median Hz  note", then a
 // summary of the share of time each chakra was shown.
@@ -34,7 +35,7 @@ static void report(int run, double start, double end, float *freqs, int nfreq, f
 int main(int argc, char **argv)
 {
     if (argc < 2) {
-        fprintf(stderr, "usage: %s FILE.wav [notes|solfeggio|bowls F0,...,F6] [--a4 HZ]\n", argv[0]);
+        fprintf(stderr, "usage: %s FILE.wav [notes|solfeggio|bowls F0,...,F6] [--a4 HZ] [--lock MS MS] [--bowl-modes on|off] [--superflux on|off]\n", argv[0]);
         return 2;
     }
     chakra_detect_config_t cfg;
@@ -57,6 +58,10 @@ int main(int argc, char **argv)
             cfg.switch_ms = (uint32_t)atoi(argv[++i]);
         } else if (strcmp(argv[i], "--a4") == 0 && i + 1 < argc) {
             cfg.a4_hz = strtof(argv[++i], NULL);
+        } else if (strcmp(argv[i], "--bowl-modes") == 0 && i + 1 < argc) {  // on|off, default chakra_detect_defaults
+            cfg.bowl_modes = strcmp(argv[++i], "on") == 0;
+        } else if (strcmp(argv[i], "--superflux") == 0 && i + 1 < argc) {  // on|off
+            cfg.superflux = strcmp(argv[++i], "on") == 0;
         }
     }
     FILE *f = fopen(argv[1], "rb");

@@ -54,6 +54,33 @@
 #define PARTIAL_DB 12.0f       // a fundamental this far under its partial still counts as the tone
 #define ONSET_BINS 1152        // the bins the onset path keeps: up to 4.5 kHz, all harmonics searched
 
+/* Bowl modes (bowl_modes). A bowl has no 2x and 4x partial: its modes grow roughly with n squared,
+ * one measured bowl 1 : 2.96 : 5.41 (Wilkerson, Serafin, Ng, ICMC 2002), so the harmonic sum misses a
+ * bowl whose second mode sits away from 3x and the harmonic share calls most of its energy "not the
+ * tone". A candidate fundamental is also scored by the strongest bin in its second-mode window
+ * (PARTIAL_LO .. PARTIAL_HI) and third-mode window (MODE3_LO .. MODE3_HI); the better of the two
+ * models wins, so voices and forks stay harmonic. The confidence likewise takes the better share.
+ * Only spectral lines count as modes (SHARP_UNDER): without that rule shakers' broad resonances read
+ * as bowls (Commons shakers 0 to 19 % colour in Flow). Evaluation 26.10.2026: strikes right Flow
+ * 58 to 61 of 70 with SuperFlux, bowls and bells colour more, gongs and voices 1 to 2 points more. */
+#define MODE3_LO 5.0f
+#define MODE3_HI 5.7f
+#define BOWL_W2 0.5f           // the bowl template's weights, as the harmonic sum's on 2x and 3x
+#define BOWL_W3 0.33f
+#define SHARP_BINS 3           // a bowl's mode is a line: SHARP_BINS either side lie 15 dB under it
+#define SHARP_UNDER 0.178f     // (10^(-15/20); a Hann line falls 30 dB there, shaker resonances and noise peaks do not)
+
+/* SuperFlux strikes (superflux; Boeck, Widmer, DAFx 2013): each bin's log level is compared with the
+ * largest of itself and its two neighbours in the hop before, so a partial that wobbles or beats into
+ * the next bin (a bowl's doublets lie a bin or so apart) makes no flux, while a new tone and a mallet's
+ * broadband attack do. The filter lowers the running median more than it lowers a strike, so the
+ * ratio over the median rises to SF_FLUX_RATIO. Evaluation 26.10.2026 (tools/bench/pipeline.py, 70
+ * strikes): the owner's hand-marked rounds 13 to 14 of 14 in Flow and Strike, nothing else worse;
+ * ratio 7 lost three late strikes of a fast round. Log bands (24 an octave, as madmom does it) found
+ * only 54 to 66 of the 70 onsets, at as many or more onsets elsewhere: they squeeze the attack's
+ * broadband rise, so the bins stay linear. */
+#define SF_FLUX_RATIO 5.0f
+
 static const chakra_info_t INFO[CHAKRA_COUNT] = {
     {"Root", "Wurzel", "Muladhara", 0xE0262B, 396},
     {"Sacral", "Sakral", "Svadhisthana", 0xF47A1F, 417},
@@ -89,6 +116,7 @@ struct chakra_detect {
     float before[ONSET_BINS];
     float fresh[ONSET_BINS];  // after minus before: what the strike brought
     float prev_log[FLUX_K1 + 1];
+    bool onset;               // a strike was found in this hop
     float flux_hist[FLUX_HIST], prev_flux;
     int flux_n, flux_pos;
     int since_onset, onset_left;  // hops since the last strike, hops left to read its new tone
@@ -109,6 +137,8 @@ void chakra_detect_defaults(chakra_detect_config_t *cfg)
     cfg->a4_hz = 440.0f;
     cfg->lock_ms = LOCK_MS;
     cfg->switch_ms = SWITCH_MS;
+    cfg->bowl_modes = true;
+    cfg->superflux = true;
 }
 
 const chakra_info_t *chakra_info(int chakra)
@@ -221,8 +251,56 @@ static float band_energy(const float *m, int limit, int centre, int half)
     return e;
 }
 
-/* The fundamental of spectrum m (bins 0 .. limit-1): the bin whose harmonics weigh most, -1 if none. */
-static int harmonic_peak(const float *m, int limit)
+/* The strongest bin of m (bins 0 .. limit-1) from lo x k to hi x k, -1 when the window lies past
+ * limit. Two bins short of limit, so the energy around it is inside. */
+static int window_max(const float *m, int limit, int k, float lo, float hi)
+{
+    const int a = (int)ceilf(lo * (float)k);
+    int b = (int)(hi * (float)k);
+    b = b < limit - 3 ? b : limit - 3;
+    int best = -1;
+    for (int i = a; i <= b; ++i) {
+        best = best < 0 || m[i] > m[best] ? i : best;
+    }
+    return best;
+}
+
+/* True when bin x of m is a spectral line: SHARP_BINS to either side lie 15 dB under it. */
+static bool sharp(const float *m, int limit, int x)
+{
+    const float under = m[x] * SHARP_UNDER;
+    return x > SHARP_BINS && x + SHARP_BINS < limit && m[x - SHARP_BINS] <= under && m[x + SHARP_BINS] <= under;
+}
+
+/* A bowl's modes over candidate fundamental k: the strongest bin of each mode window, -1 where that
+ * bin is no line (or the window lies past limit). False when k itself is no line. */
+static bool find_modes(const float *m, int limit, int k, int *p2, int *p3)
+{
+    if (!sharp(m, limit, k)) {
+        return false;
+    }
+    *p2 = window_max(m, limit, k, PARTIAL_LO, PARTIAL_HI);
+    *p3 = window_max(m, limit, k, MODE3_LO, MODE3_HI);
+    *p2 = *p2 > 0 && sharp(m, limit, *p2) ? *p2 : -1;
+    *p3 = *p3 > 0 && sharp(m, limit, *p3) ? *p3 : -1;
+    return true;
+}
+
+/* The bowl template's score of candidate k: its fundamental and its strongest second and third mode. */
+static float bowl_score(const float *m, int limit, int k)
+{
+    int p2, p3;
+    if (!find_modes(m, limit, k, &p2, &p3)) {
+        return 0.0f;
+    }
+    return m[k] + (p2 > 0 ? BOWL_W2 * m[p2] : 0.0f) + (p3 > 0 ? BOWL_W3 * m[p3] : 0.0f);
+}
+
+/* The fundamental of spectrum m (bins 0 .. limit-1): the bin whose harmonics (or, with bowl_modes,
+ * whose bowl modes) weigh most, -1 if none. The bowl template scans two windows a candidate, so it
+ * runs second and only where it could still win: m[k] plus the template's weights times the
+ * spectrum's largest bin must beat the best so far (on a clear tone a few candidates are left). */
+static int harmonic_peak(const chakra_detect_t *d, const float *m, int limit)
 {
     const int kmin = (int)(F_MIN / BIN_HZ), kmax = (int)(F_MAX / BIN_HZ);
     static const float W[HARMONICS] = {1.0f, 0.5f, 0.33f, 0.25f};
@@ -238,6 +316,21 @@ static int harmonic_peak(const float *m, int limit)
             best = k;
         }
     }
+    if (d->cfg.bowl_modes) {
+        float top = 0.0f;
+        for (int i = kmin; i < limit; ++i) {
+            top = m[i] > top ? m[i] : top;
+        }
+        for (int k = kmin; k <= kmax; ++k) {
+            if (m[k] + (BOWL_W2 + BOWL_W3) * top > best_score && m[k] >= m[k - 1] && m[k] >= m[k + 1]) {
+                const float s = bowl_score(m, limit, k);
+                if (s > best_score) {
+                    best_score = s;
+                    best = k;
+                }
+            }
+        }
+    }
     return best > 1 ? best : -1;
 }
 
@@ -250,12 +343,19 @@ static float peak_hz(const float *m, int k)
     return ((float)k + (delta > 0.5f ? 0.5f : delta < -0.5f ? -0.5f : delta)) * BIN_HZ;
 }
 
-/* Share of the 50 Hz .. 4 kHz energy of m that sits on the harmonics of bin k. */
-static float tone_confidence(const float *m, int limit, int k)
+/* Share of the 50 Hz .. 4 kHz energy of m that sits on the harmonics of bin k; with bowl_modes the
+ * better of that and the share on k and its strongest second and third mode. */
+static float tone_confidence(const chakra_detect_t *d, const float *m, int limit, int k)
 {
     float harm = 0.0f;
     for (int h = 1; h <= HARMONICS && h * k + 2 < limit; ++h) {
         harm += band_energy(m, limit, h * k, 2);
+    }
+    int p2, p3;
+    if (d->cfg.bowl_modes && find_modes(m, limit, k, &p2, &p3)) {
+        const float modes = band_energy(m, limit, k, 2) + (p2 > 0 ? band_energy(m, limit, p2, 2) : 0.0f) +
+                            (p3 > 0 ? band_energy(m, limit, p3, 2) : 0.0f);
+        harm = modes > harm ? modes : harm;
     }
     float total = 0.0f;
     for (int i = (int)(50.0f / BIN_HZ); i < (int)(4000.0f / BIN_HZ) && i < limit; ++i) {
@@ -395,13 +495,20 @@ static int strike(chakra_detect_t *d, int plain, int *bin)
         const float held = d->env[k] * decay;
         d->env[k] = d->mag[k] > held ? d->mag[k] : held;
     }
-    /* Positive flux of the log spectrum, 100 .. 1500 Hz, against the hop before. */
-    float flux = 0.0f;
+    /* Positive flux of the log spectrum, 100 .. 1500 Hz, against the hop before: bin by bin, or
+     * (SuperFlux) against the largest of the bin and its two neighbours before. */
+    float flux = 0.0f, left = 0.0f;  // left: bin k-1 of the hop before, already overwritten
     for (int k = FLUX_K0; k <= FLUX_K1; ++k) {
         const float l = logf(d->mag[k] * MAG_NORM + FLUX_FLOOR);
-        if (d->hist_n > 0 && l > d->prev_log[k]) {
-            flux += l - d->prev_log[k];
+        float ref = d->prev_log[k];
+        if (d->cfg.superflux) {
+            ref = k > FLUX_K0 && left > ref ? left : ref;
+            ref = k < FLUX_K1 && d->prev_log[k + 1] > ref ? d->prev_log[k + 1] : ref;
         }
+        if (d->hist_n > 0 && l > ref) {
+            flux += l - ref;
+        }
+        left = d->prev_log[k];
         d->prev_log[k] = l;
     }
     float median = 0.0f;
@@ -417,12 +524,14 @@ static int strike(chakra_detect_t *d, int plain, int *bin)
         d->flux_n += d->flux_n < FLUX_HIST;
     }
     d->since_onset += d->since_onset < ONSET_GAP_HOPS;
-    if (d->hist_n >= ONSET_BACK && d->flux_n >= 8 && flux > FLUX_RATIO * median && flux > FLUX_MIN &&
-        flux > d->prev_flux && d->since_onset >= ONSET_GAP_HOPS) {
+    d->onset = false;
+    if (d->hist_n >= ONSET_BACK && d->flux_n >= 8 && flux > (d->cfg.superflux ? SF_FLUX_RATIO : FLUX_RATIO) * median &&
+        flux > FLUX_MIN && flux > d->prev_flux && d->since_onset >= ONSET_GAP_HOPS) {
         /* A strike: the spectrum one window back did not hear it yet. */
         memcpy(d->before, d->hist[d->hist_pos], sizeof(d->before));
         d->onset_left = ONSET_WINDOW_HOPS;
         d->since_onset = 0;
+        d->onset = true;
         d->switched_hz = 0.0f;
         d->run_chakra = -1;
         d->run_hops = 0;
@@ -438,7 +547,7 @@ static int strike(chakra_detect_t *d, int plain, int *bin)
         }
         int chakra = -1;
         float f = 0.0f;
-        int k = harmonic_peak(d->fresh, ONSET_BINS);
+        int k = harmonic_peak(d, d->fresh, ONSET_BINS);
         const float rise = powf(10.0f, ONSET_RISE_DB / 20.0f);
         if (k > 0) {
             /* A bowl's second mode (2.5 to 3.1 times the fundamental, not a harmonic) often sounds
@@ -458,7 +567,7 @@ static int strike(chakra_detect_t *d, int plain, int *bin)
         if (k > 0) {
             const float now = near_max(d->mag, k), was = near_max(d->before, k);
             if (now >= level_mag(d->cfg.threshold_db) && now >= was * rise &&
-                tone_confidence(d->fresh, ONSET_BINS, k) >= d->cfg.min_confidence) {
+                tone_confidence(d, d->fresh, ONSET_BINS, k) >= d->cfg.min_confidence) {
                 chakra_reading_t scratch;
                 f = peak_hz(d->mag, k);
                 chakra = map_freq(d, f, &scratch);
@@ -552,12 +661,12 @@ static void analyse(chakra_detect_t *d)
     }
 
     /* Fundamental: the bin whose harmonics weigh most. */
-    const int best = harmonic_peak(d->mag, CHAKRA_FFT / 2);
+    const int best = harmonic_peak(d, d->mag, CHAKRA_FFT / 2);
     int candidate = -1, tone_bin = best;  // tone_bin: the fundamental this hop's reading stands for
     if (best > 0) {
         const float f = peak_hz(d->mag, best);
         /* Confidence: share of the 50 Hz .. 4 kHz energy that sits on the tone's harmonics. */
-        r->confidence = tone_confidence(d->mag, CHAKRA_FFT / 2, best);
+        r->confidence = tone_confidence(d, d->mag, CHAKRA_FFT / 2, best);
         r->tone = r->level_db >= d->cfg.threshold_db && r->confidence >= d->cfg.min_confidence;
         if (r->tone) {
             r->freq_hz = f;
@@ -581,6 +690,7 @@ static void analyse(chakra_detect_t *d)
     r->candidate = candidate;
     int strike_bin = -1;
     const int struck = strike(d, candidate, &strike_bin);
+    r->onset = d->onset;
 
     /* Lock after LOCK_MS of the same reading, release after hold_ms without the locked one. */
     /* A run counts only while the pitch stays put: percussion and noise wander, bowls hold. */

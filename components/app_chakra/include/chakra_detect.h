@@ -2,15 +2,17 @@
 // Chakra detection: mono 16 kHz samples in, the chakra of the tone that sounds out.
 //
 // Pure C, no GSP and no ESP-IDF, so the board, the simulator and the host tests run the same
-// code. A 4096-point FFT every 1024 samples (64 ms, 3.9 Hz per bin), a weighted harmonic sum
-// picks the fundamental between 90 and 1100 Hz, parabolic interpolation refines it. The tone
+// code. A 4096-point FFT every 1024 samples (64 ms, 3.9 Hz per bin), a weighted harmonic sum or a
+// bowl's mode template (1 : 2.5-3.1 : 5.0-5.7, whichever weighs more) picks the fundamental between
+// 90 and 1100 Hz, parabolic interpolation refines it. The tone
 // maps to a chakra by its note (A = 440 Hz by default, 432 selectable, octave-independent, as
 // the Box-3 generations did), by the nearest Solfeggio frequency, or by the user's own learned bowls. A
 // chakra locks after 256 ms of one reading (640 ms to switch from another, with hysteresis at
 // note boundaries) and is released after `hold_ms` without it.
 //
 // Strikes have a path of their own, so a loud bowl that rings on does not mask the quieter bowls
-// struck after it: the positive spectral flux (100 to 1500 Hz) finds the strike, the spectrum from
+// struck after it: the positive spectral flux (100 to 1500 Hz, SuperFlux: each bin against the
+// largest of its neighbours before, so beating partials make none) finds the strike, the spectrum from
 // before it is taken off the spectra after it, and the harmonic sum of what is left names the new
 // tone. Over a tone that still rings, a new one that rose 12 dB, passes the confidence and level
 // gates and holds its pitch for `lock_ms` takes the chakra (Strike 128 ms, Flow 384 ms after it
@@ -61,6 +63,8 @@ typedef struct {
     float bowl_hz[CHAKRA_COUNT];  // CHAKRA_MAP_BOWLS: each chakra's bowl as the app heard it; 0 = none
     uint32_t lock_ms;    // from silence: this long one steady reading locks a chakra (256); a struck tone too
     uint32_t switch_ms;  // from another chakra (640); Flow uses longer, Strike shorter
+    bool bowl_modes;     // also score a fundamental by a bowl's modes (1 : 2.5-3.1 : 5.0-5.7), not only harmonics; true
+    bool superflux;      // strikes by SuperFlux (maximum filter over neighbouring bins), not the plain flux; true
 } chakra_detect_config_t;
 
 typedef struct {
@@ -73,6 +77,7 @@ typedef struct {
     int cents;         // deviation from the note, -50..50
     float level_db;    // dBFS of the hop
     float confidence;  // 0..1
+    bool onset;        // the strike path found a strike (a spectral-flux onset) in this hop
     /* 0..100 a band of the axis above (-90..-25 dBFS), rising at once and falling slowly. */
     uint8_t bars[CHAKRA_BARS];
 } chakra_reading_t;
