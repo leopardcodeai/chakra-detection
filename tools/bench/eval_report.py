@@ -175,7 +175,8 @@ def strip_figure(path: Path, title: str, groups: dict, xlabel: str, stats: dict)
         for j, lab in enumerate(labels):
             xs = np.array(groups[lab])
             ys = j + rng.uniform(-0.18, 0.18, len(xs))
-            ax.scatter(xs, ys, s=16, color=th["series"][j], alpha=0.55, edgecolors="none", marker=MARKERS[j], zorder=2)
+            ax.scatter(xs, ys, s=18, color=th["series"][j], alpha=0.6 if theme_name == "light" else 0.85,
+                       edgecolors="none", marker=MARKERS[j], zorder=2)
             st = stats[lab]
             if st.get("value") is not None:
                 if st.get("low") is not None:
@@ -197,7 +198,7 @@ def strip_figure(path: Path, title: str, groups: dict, xlabel: str, stats: dict)
         for side in ("top", "right", "left"):
             ax.spines[side].set_visible(False)
         ax.spines["bottom"].set_color(th["axis"])
-        ax.set_xlim(left=0)
+        ax.set_xlim(left=-0.03)
         hh = 1.4 + 0.9 * len(labels)
         fig.text(0.01, 1 - 0.12 / hh, title, ha="left", va="top", color=th["ink"], fontsize=12, fontweight="bold")
         fig.tight_layout(rect=(0, 0, 1, 1 - 0.55 / hh))
