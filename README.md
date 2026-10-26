@@ -40,6 +40,9 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
   orange dot in the top bar says the microphone listens, as on iOS.
 - **Colours the room.** The whole screen fades to the chakra's colour, so it works without any lamp. Tick
   the lamps that should follow under **Connections**; lamps that are not paired yet are shown greyed.
+- **Calm light.** Brightness starts at 30 % (60 % before 26 October 2026; a stored setting stays as it
+  was). The lamps fade by themselves: one command per colour change, two per kick or gong swell (one up,
+  one down), and a Hue bridge or Home Assistant gets at most 8 commands a second (Hue takes about 10).
 - **A screen as the lamp.** The screen lamp (ticked by default) is a page that fills a whole browser window
   with the colour, the chakra's symbol and names faint on top. Its address stands large under Connections:
   type it into a TV or laptop browser and go fullscreen. On the board the device serves it itself, at
@@ -47,9 +50,13 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
 - **Your colour, if you like.** Under **Settings**, Colour: Auto (default) follows the chakra; a tap on one
   of the seven colours, or the Colour slider for any hue, gives a steady light that the tones do not change.
 - **Local AI sound gate (optional, off by default).** Under Settings, "Local AI sound gate" On: only bowl-like sounds change the colour,
-  fades get softer, and a gong or a drum strike gives the light a short brightness kick instead of a wrong
-  colour. On the Mac it runs EfficientAT (mn05) with a small head trained on freely licensed recordings
-  (`tools/ai_gate.py`, `chakra_feed.py mic --ai`); on the board it is meant for the ESP32-S31's AI
+  fades get softer, and a strike gives the light a small brightness kick instead of a wrong colour: 8
+  points and 8 % towards white, at most one every 2 s, so a drum at 4 beats a second never flashes per
+  beat (the change stays under the WCAG flash line for every colour). A gong never kicks: the lamps swell
+  12 points over 1.5 s and fall back over 7 s, with the colour kept. On the Mac it runs EfficientAT (mn05)
+  with a small head trained on freely licensed recordings (`tools/ai_gate.py`, `chakra_feed.py mic --ai`),
+  and a second head that tells gongs from other sounds (`tools/bench/gong_head.py`; it finds 45 % of the
+  Commons gongs and 33 % of our own, a gong it misses gets the small kick); on the board it is meant for the ESP32-S31's AI
   instructions through ESP-DL (mn05 at 8-bit weights and 16-bit activations, about 1.9 MB, estimated 30 to
   60 ms per second of audio, to be measured when the board is here). On 91 recordings (26 October 2026,
   table below): gongs coloured the room 60 % of the time they sounded without the gate and 21 % with it,
@@ -126,7 +133,7 @@ cd apps/chakra
 ./sim.sh --mic                  # browser preview at http://127.0.0.1:3222, listening to your microphone
 python3 tools/chakra_feed.py demo        # or: seven bowl tones, root to crown
 python3 tools/chakra_feed.py tone 174.6  # one tone
-tests/run.sh                    # the detection's host tests
+tests/run.sh                    # the host tests: detection, kick, gong swell, lamp pace
 tests/analyse.sh my_bowls.wav   # any recording
 ```
 
@@ -164,9 +171,10 @@ the environment and writes them straight to the board.
 |---|---|
 | Detection: FFT, harmonics, steadiness, strikes (spectral flux), mappings, hysteresis, learned bowls | `components/app_chakra/chakra_detect.c` |
 | Screen: colour fades, symbols, tuner ring, settings, learning, hold to close | `components/app_chakra/chakra_core.c`, scene `ui/make_scene.py` |
+| Light: strike kick (at most 1 per 2 s), gong swell, the AI gate's colour rule, lamp pace | `components/app_chakra/chakra_light.c` |
 | Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, the screen lamp's page (`/lamp`), settings in NVS | `main/main.c` |
 | Simulator side and feeder | `components/app_chakra/host/platform_pc.c`, `tools/chakra_feed.py` |
-| Tests | `tests/test_detect.c`, `tests/analyse_wav.c` |
+| Tests | `tests/test_detect.c`, `tests/test_light.c`, `tests/analyse_wav.c` |
 | How the light would change over a recording: changes a minute, holds, flicker, dark gaps | `tools/light_timeline.py` |
 
 The detection is plain C with no dependencies, so the board, the simulator and the tests run the same code.

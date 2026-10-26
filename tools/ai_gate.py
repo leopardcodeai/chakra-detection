@@ -3,7 +3,7 @@
 
 What: reads raw signed 16-bit mono audio at 32 kHz on stdin (chakra_feed.py --ai pipes it in) and
       prints one line per verdict for the app's simulator (chakra_feed.py forwards it):
-        sound<TAB>bowl|other|none<TAB><strike 0|1>
+        sound<TAB>bowl|other|gong|none<TAB><strike 0|1>
       Every 0.5 s it judges the last second with EfficientAT (mn05_as, AudioSet) and the small
       trained head from tools/bench/gate_bench.py (--save-head writes it to HEAD): bowl-like sounds
       let the colour follow the pitch, anything else keeps it. Between verdicts a jump in loudness
@@ -11,6 +11,11 @@ What: reads raw signed 16-bit mono audio at 32 kHz on stdin (chakra_feed.py --ai
       verdict, so a gong or a drum kicks the light without waiting for the model.
       Without the head file it falls back to the pretrained rule (best bowl-like class against the
       best other class), which the benchmark showed to be weaker on gongs.
+      An "other" verdict becomes "gong" when the gong head (tools/bench/gong_head.py --save writes
+      GONG_HEAD) says so: the app then swells the light slowly instead of kicking it (owner
+      26.10.2026). Without that file the gate never says gong, and an app from before reads "gong"
+      as none (no kick, colour kept). Clip-wise it found 45 % of Commons gongs and 33 % of own ones,
+      and called 13 % of drum and 10 % of voice windows gong; a miss is only a small kick.
 Why:  owner 25.10.2026: "die App mit AI on/off", "smoothere Übergänge, und wenn doch so ein
       Schlag kommt, Helligkeit und Farbe als Kick reinbringen". On the board the same job is meant
       for mn05 w8a16 on the ESP32-S31 through ESP-DL (estimated 30 to 60 ms per window, not yet
@@ -37,6 +42,7 @@ from classifier_bench import BOWL_CLASSES  # noqa: E402
 
 STATE = Path.home() / "Library/Application Support/LeopardCode/chakra"
 HEAD = STATE / "ai_models/gate_head_mn05.json"
+GONG_HEAD = STATE / "ai_models/gate_gong_mn05.json"
 MODEL = "mn05_as"
 RATE = eat.RATE  # 32 kHz
 WINDOW, STEP_S, CHUNK_S = 1.0, 0.5, 0.05
@@ -55,7 +61,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     if a.dry_run:
-        print(f"model {MODEL}, head {HEAD if HEAD.exists() else 'none (pretrained rule)'}")
+        print(f"model {MODEL}, head {HEAD if HEAD.exists() else 'none (pretrained rule)'}, "
+              f"gong head {GONG_HEAD if GONG_HEAD.exists() else 'none (never says gong)'}")
         return
     torch, labels, get_mn, get_dymn, mel = eat.load_repo()
     model = eat.build(MODEL, get_mn, get_dymn)
@@ -63,6 +70,10 @@ def main():
     if head:
         coef, bias = np.array(head["coef"]), float(head["intercept"])
         mean, scale = np.array(head["mean"]), np.array(head["scale"])
+    gong = json.loads(GONG_HEAD.read_text()) if GONG_HEAD.exists() else None
+    if gong:
+        g_coef, g_bias = np.array(gong["coef"]), float(gong["intercept"])
+        g_mean, g_scale = np.array(gong["mean"]), np.array(gong["scale"])
     bowl_i = [i for i, l in enumerate(labels) if l in BOWL]
     other_i = [i for i, l in enumerate(labels) if l in OTHER]
     size, chunk = int(RATE * WINDOW), int(RATE * CHUNK_S)
@@ -96,6 +107,9 @@ def main():
             else:
                 p = torch.sigmoid(logits)[0].numpy()
                 verdict = "bowl" if p[bowl_i].max() >= p[other_i].max() else "other"
+            if verdict == "other" and gong:
+                e = emb[0].numpy().ravel()
+                verdict = "gong" if float(((e - g_mean) / g_scale) @ g_coef + g_bias) > 0 else "other"
         out.write(f"sound\t{verdict}\t0\n")
         out.flush()
 

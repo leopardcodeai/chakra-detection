@@ -14,8 +14,9 @@ Why:  owner 26.10.2026: "check auch immer nicht nur die Erkennung, sondern auch 
       detection can be right and the room still restless: a colour that holds 0.3 s is a flicker, ten
       changes a minute feel like a disco, a long dark gap while a bowl rings feels broken.
 Pitfalls:
-  * The screen and the lamps fade (Flow about 1.5 s, Strike 0.1 s) and a strike kicks the brightness;
-    this measures the colour decisions, not the fades. A change shorter than its fade is seen as a smear.
+  * The screen and the lamps fade (Flow about 1.5 s, Strike 0.1 s); with the AI gate a strike kicks the
+    brightness (at most once every 2 s) and a gong swells it. This measures the colour decisions, not the
+    fades, kicks or swells (tests/test_light.c checks those). A change shorter than its fade is a smear.
   * "dark" counts time between colours; a recording with long silences is dark there on purpose.
 Usage:  tools/light_timeline.py FILE_OR_FOLDER... [--mode flow|strike|both] [--json OUT.json] [--dry-run]
 """

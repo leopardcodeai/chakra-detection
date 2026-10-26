@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "chakra_detect.h"
+#include "chakra_light.h"
 #include "esp_gsp.h"
 
 #ifdef __cplusplus
@@ -67,8 +68,10 @@ typedef int (*chakra_poll_cb_t)(chakra_reading_t *out, void *ctx);
 /** The locked chakra changed; -1 is silence after the after-glow (lamps keep their colour then).
  *  With a fixed colour it comes once per change of colour or brightness, with that colour and the
  *  chakra 0..6 or CHAKRA_FIXED_HUE. The platform sets the lamps ticked in the settings it got last
- *  through on_settings. */
-typedef void (*chakra_light_cb_t)(int chakra, uint32_t rgb, int brightness, void *ctx);
+ *  through on_settings. transition_ms: how long the lamp fades to it (Flow 1500, Strike 100; a
+ *  kick or gong swell sends one command up and one down, chakra_light.h). Lamps on a network
+ *  are paced by the platform (CHAKRA_LAMP_GAP_MS); a screen may follow every command. */
+typedef void (*chakra_light_cb_t)(int chakra, uint32_t rgb, int brightness, int transition_ms, void *ctx);
 /** The user changed a setting; the platform stores it and applies it to the detection. */
 typedef void (*chakra_settings_cb_t)(const chakra_settings_t *settings, void *ctx);
 /** The top bar was held 3 s: back to Vibe Mode. */
@@ -111,11 +114,12 @@ void chakra_core_set_connection(chakra_core_handle_t c, int state);
 int chakra_core_band_window(chakra_core_handle_t c);
 
 /* What the local AI sound gate hears now (only used with settings.ai on). A bowl-like sound lets
- * the detection change the colour for the next 2 s; anything else keeps the colour, and an onset
- * of it (strike = 1: a gong, a drum) kicks the light brighter for about a second instead. While
- * no gate has spoken for 5 s (none running, or it stopped), the detection leads alone, so the
- * setting can never leave the room without colour. */
-enum { CHAKRA_SOUND_NONE, CHAKRA_SOUND_BOWL, CHAKRA_SOUND_OTHER };
+ * the detection change the colour for the next 2 s; anything else keeps the colour. An onset of
+ * it (strike = 1) kicks the light a little brighter for about a second, at most once every 2 s;
+ * a gong (CHAKRA_SOUND_GONG) swells it slowly instead. While no gate has spoken for 5 s (none
+ * running, or it stopped), the detection leads alone, so the setting can never leave the room
+ * without colour. */
+/* CHAKRA_SOUND_NONE, _BOWL, _OTHER, _GONG: chakra_light.h. */
 void chakra_core_set_sound(chakra_core_handle_t c, int kind, int strike);
 /** The lamp list, at most CHAKRA_LAMPS; ticks on unpaired lamps are cleared. UI task only. */
 void chakra_core_set_lamps(chakra_core_handle_t c, const chakra_lamp_t *lamps, int count);

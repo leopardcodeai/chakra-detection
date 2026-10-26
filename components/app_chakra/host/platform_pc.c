@@ -11,7 +11,7 @@
 // and about five times a second the spectrum window the screen shows, for the page's faint band:
 // bars\t<MIDI note of the first band>\t<18 values 0..100>\n (one band a semitone, chakra_core.h)
 // The AI sound gate's verdicts come in on a second port, CHAKRA_AI_PORT or the audio port + 1,
-// one line each from tools/chakra_feed.py --ai: sound\t<bowl|other|none>\t<strike 0|1>\n.
+// one line each from tools/chakra_feed.py --ai: sound\t<bowl|other|gong|none>\t<strike 0|1>\n.
 // Port: CHAKRA_FEED_PORT or 8698, 127.0.0.1 only, one client at a time. All socket work is
 // non-blocking and runs in the core's 40 ms tick on the bridge's single thread.
 #include <errno.h>
@@ -117,6 +117,7 @@ static void poll_ai(void)
         if (sscanf(host.ai_line, "sound\t%15s\t%d", kind, &strike) >= 1) {
             const int k = strcmp(kind, "bowl") == 0    ? CHAKRA_SOUND_BOWL
                           : strcmp(kind, "other") == 0 ? CHAKRA_SOUND_OTHER
+                          : strcmp(kind, "gong") == 0  ? CHAKRA_SOUND_GONG
                                                        : CHAKRA_SOUND_NONE;
             chakra_core_set_sound(host.core, k, strike);
         }
@@ -130,16 +131,16 @@ static void send_text(const char *line)
     }
 }
 
-static void on_light(int chakra, uint32_t rgb, int brightness, void *ctx)
+static void on_light(int chakra, uint32_t rgb, int brightness, int transition_ms, void *ctx)
 {
     (void)ctx;
     if (!(host.lamps & 0x03)) {
         return;  // neither the screen lamp (row 0) nor the feeder's Home Assistant lamp (row 1) is ticked
     }
     char line[64];
-    /* Lamps fade like the screen: Flow softly, Strike at once. */
+    /* The core's fade: Flow 1.5 s, Strike 0.1 s; a kick or gong swell is one line up and one down. */
     snprintf(line, sizeof(line), "light\t%d\t%06X\t%d\t%.1f\n", chakra, (unsigned)rgb, brightness,
-             host.reaction == CHAKRA_STRIKE ? 0.1 : 1.5);
+             transition_ms / 1000.0);
     fprintf(stderr, "chakra: %s", line);
     send_text(line);
 }

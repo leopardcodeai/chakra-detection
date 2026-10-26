@@ -21,6 +21,6 @@ endif()
 
 add_subdirectory("${ESP_GSP_COMPONENT_DIR}/tools/sim_bridge" sim_bridge)
 gsp_add_backend(chakra_backend
-    SOURCES ../chakra_core.c ../chakra_detect.c platform_pc.c
+    SOURCES ../chakra_core.c ../chakra_detect.c ../chakra_light.c platform_pc.c
     INCLUDE_DIRECTORIES ../include
     SCENES ../ui/main.json)

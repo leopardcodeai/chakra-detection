@@ -312,13 +312,14 @@ static int poll_reading(chakra_reading_t *out, void *ctx)
     return got;
 }
 
-static void on_light(int chakra, uint32_t rgb, int brightness, void *ctx)
+static void on_light(int chakra, uint32_t rgb, int brightness, int transition_ms, void *ctx)
 {
     (void)ctx;
     if (chakra < 0) {
         return;  // silence: the lamps keep their colour
     }
-    const light_cmd_t cmd = {chakra, rgb, brightness, app.settings.reaction == CHAKRA_STRIKE ? 1 : 15};
+    /* The core's fade (Flow 1.5 s, Strike 0.1 s; a kick or gong swell: one command up, one down). */
+    const light_cmd_t cmd = {chakra, rgb, brightness, (transition_ms + 50) / 100};
     xQueueSend(app.lights, &cmd, 0);
 }
 
@@ -437,10 +438,25 @@ static void wiz_light(int sock, const char *ip, const light_cmd_t *c)
     }
 }
 
+/* Waits until the target may take the next command, then counts this one (CHAKRA_LAMP_GAP_MS:
+ * a Hue bridge takes about 10 commands a second to lights; Home Assistant passes them on to its
+ * bridges the same way). Only network lamps wait; the screen lamp's page fades by itself. */
+static void pace(chakra_pace_t *p)
+{
+    const uint32_t wait = chakra_pace_wait(p, now_ms(NULL));
+    if (wait) {
+        vTaskDelay(pdMS_TO_TICKS(wait) ? pdMS_TO_TICKS(wait) : 1);
+    }
+    chakra_pace_sent(p, now_ms(NULL));
+}
+
 static void light_task(void *arg)
 {
     (void)arg;
     const int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    chakra_pace_t hue_pace, ha_pace;
+    chakra_pace_init(&hue_pace, CHAKRA_LAMP_GAP_MS);
+    chakra_pace_init(&ha_pace, CHAKRA_LAMP_GAP_MS);
     light_cmd_t c;
     for (;;) {
         if (xQueueReceive(app.lights, &c, pdMS_TO_TICKS(2000)) != pdTRUE) {
@@ -461,11 +477,13 @@ static void light_task(void *arg)
             switch (app.rows[row].kind) {
             case CHAKRA_LAMP_HA:
                 if (app.row_ha[row] >= 0) {
+                    pace(&ha_pace);
                     ha_light(app.ha_entity[app.row_ha[row]], &c);
                 }
                 break;
             case CHAKRA_LAMP_HUE:
                 for (int i = 0; i < app.hue_count; ++i) {
+                    pace(&hue_pace);  // every lamp on the one bridge: under 10 commands a second together
                     hue_light(app.hue_ids[i], &c);
                 }
                 break;

@@ -9,17 +9,21 @@ What: streams signed 16-bit mono 16 kHz audio to the simulator (127.0.0.1:8698, 
         wav FILE      any file ffmpeg can read
       and prints what the simulator sends back. With --light ENTITY each chakra also colours a
       real lamp through Home Assistant's REST API (HA_URL and HA_TOKEN from the environment,
-      never from the command line). With --lamp URL each light command goes to a screen lamp
+      never from the command line), at most one command every LAMP_GAP seconds (the newest
+      waits, older ones in between are dropped): a Hue bridge behind Home Assistant takes about 10
+      commands a second. With --lamp URL each light command goes to a screen lamp
       instead: the protocol line as it came, POSTed to URL/light (a page that fills the screen with
       the colour, e.g. on http://127.0.0.1:3310), so no real lamp lights up; the "reading" lines
       (chakra names, note, Hz, cents) go there too, for the page's text.
       With --ai (mic and wav) the same audio also goes to tools/ai_gate.py (the AI sound gate,
-      EfficientAT on the Mac, in the venv AI_VENV), whose verdicts ("sound bowl|other|none
+      EfficientAT on the Mac, in the venv AI_VENV), whose verdicts ("sound bowl|other|gong|none
       strike") are forwarded to the simulator's second port (the audio port + 1); they act only
       while the app's "AI sound gate" setting is On.
 Why:  the board is on order; this tests the whole chain, microphone to lamp, on the Mac.
 Pitfalls:
   * Only one client at a time; a new feeder replaces the old one.
+  * The app sends one command per colour change and two per kick or gong swell (one up, one down,
+    each with its fade), so the lamp itself fades; the screen lamp page takes every line at once.
   * The mic needs ffmpeg (brew install ffmpeg) and the terminal's microphone permission.
 Usage:  chakra_feed.py demo | tone 341 [--seconds 4] | mic | wav FILE  [--light light.x | --lamp URL] [--ai]
                        [--dry-run]
@@ -41,6 +45,7 @@ RATE, HOP = 16000, 1024
 AI_RATE = 32000  # EfficientAT's rate; the app gets every pair of samples averaged down to RATE
 AI_VENV = os.path.expanduser("~/Library/Application Support/LeopardCode/chakra/ai_venv_eat/bin/python")
 A4 = 440.0  # the app's default reference
+LAMP_GAP = 0.125  # seconds between two commands to a real lamp (chakra_light.h CHAKRA_LAMP_GAP_MS)
 # Note per chakra in the default note mapping (C, D, E, F, G, A, B), octave 3.
 DEMO_NOTES = [0, 2, 4, 5, 7, 9, 11]
 NAMES = ["Root", "Sacral", "Solar plexus", "Heart", "Throat", "Third eye", "Crown"]
@@ -102,6 +107,32 @@ def set_lamp(entity, line):
         print(f"  lamp {entity}: {e}", flush=True)
 
 
+class Paced:
+    """Sends to a real lamp from its own thread, at most one command every LAMP_GAP seconds: the
+    newest line waits, any older one still waiting is dropped (only the latest state matters)."""
+
+    def __init__(self, send):
+        self.send, self.line, self.cv = send, None, threading.Condition()
+        threading.Thread(target=self.run, daemon=True).start()
+
+    def put(self, line):
+        with self.cv:
+            self.line = line
+            self.cv.notify()
+
+    def run(self):
+        last = 0.0
+        while True:
+            with self.cv:
+                while self.line is None:
+                    self.cv.wait()
+            time.sleep(max(0.0, last + LAMP_GAP - time.monotonic()))
+            with self.cv:
+                line, self.line = self.line, None
+            last = time.monotonic()
+            self.send(line)
+
+
 def set_virtual(url, line):
     """The protocol line as it came, to the screen lamp page (POST /light); nothing in the house."""
     req = urllib.request.Request(url.rstrip("/") + "/light", data=line.encode(), method="POST",
@@ -115,6 +146,7 @@ def set_virtual(url, line):
 
 def listen(sock, entity, lamp=None):
     buf = b""
+    real = Paced(lambda line: set_lamp(entity, line)) if entity and not lamp else None
     while True:
         try:
             chunk = sock.recv(4096)
@@ -132,8 +164,8 @@ def listen(sock, entity, lamp=None):
                       flush=True)
                 if lamp:
                     set_virtual(lamp, line)
-                elif entity:
-                    set_lamp(entity, line)
+                elif real:
+                    real.put(line)
             elif (line.startswith("reading\t") or line.startswith("bars\t")) and lamp:
                 set_virtual(lamp, line)  # names, note, Hz, cents and the spectrum for the lamp page
             elif line == "close":

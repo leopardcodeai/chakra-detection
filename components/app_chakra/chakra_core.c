@@ -14,11 +14,8 @@
 #define FADE_FLOW 0.06f        // share of the way to the target colour per tick: about 1.6 s
 #define FADE_STRIKE 0.35f      // about 0.3 s
 #define FADE_AI 0.03f          // with the AI gate: about 3 s, the softest of the three
-#define AI_HOLD_TICKS 50       // a bowl verdict lets the colour change for 2 s
-#define GATE_ALIVE_TICKS 125   // no verdict for 5 s: the gate is gone and the detection leads alone again
-#define KICK_DECAY 0.90f       // the strike kick fades to a tenth in about 0.9 s
-#define KICK_WHITE 0.35f       // how far a full kick pushes the colour towards white
-#define KICK_BRIGHT 40         // and the lamps' brightness up, in percent points
+#define LAMP_FLOW_MS 1500      // lamps fade a colour change over this in Flow (the bulb does the fade)
+#define LAMP_STRIKE_MS 100     // and in Strike; kicks and gong swells: chakra_light.h
 #define TUNE_STEP 0.25f        // the tuning ring follows a little slower than the reading
 #define SUB_EVERY_TICKS 3      // the note line at most every 120 ms
 #define HOLD_MS 3000
@@ -89,12 +86,8 @@ struct chakra_core {
     int dot_octave;                  // the spectrum window's octave: the last locked tone's, 3..5
     int lit_band;                    // the band shown in its note's colour, -1 none
     uint32_t ticks, sub_tick;
-    uint32_t bowl_tick;   // the tick of the AI gate's last bowl verdict (settings.ai)
-    uint32_t gate_tick;   // the tick of the gate's last verdict of any kind
-    bool gate_heard;      // whether the gate has spoken at all: without it the setting changes nothing
-    bool bowl_heard;      // whether there was one at all
-    float kick;           // the strike kick now, 1 at a strike, decaying to 0
-    int last_shown;       // the last chakra that had a colour: a kick in silence lights that one
+    chakra_light_t fx;    // the strike kick and the gong swell (chakra_light.h)
+    int last_shown;       // the last chakra that had a colour: a kick or swell in silence lights that one
     chakra_reading_t last;
     int learn;            // bowl being learned 0..6, -1 when not learning
     uint32_t learn_ms;
@@ -219,7 +212,7 @@ void chakra_settings_defaults(chakra_settings_t *s)
 {
     memset(s, 0, sizeof(*s));
     s->lamps = 0x01;
-    s->brightness = 60;
+    s->brightness = 30;  // dim by default (owner 26.10.2026; 60 before): a journey is felt, not lit
     s->sensitivity = 8;
     s->hold_ds = 15;
     s->map = CHAKRA_MAP_NOTES;
@@ -371,14 +364,8 @@ static void animate(struct chakra_core *c)
         const float d = t[i] - c->cur[i];
         const float fade = c->s.ai ? FADE_AI : c->s.reaction == CHAKRA_STRIKE ? FADE_STRIKE : FADE_FLOW;
         c->cur[i] = (d > -1.0f && d < 1.0f) ? t[i] : c->cur[i] + d * fade;
-        const float shown = c->cur[i] + (255.0f - c->cur[i]) * KICK_WHITE * c->kick;  // a strike: towards white
+        const float shown = c->cur[i] + (255.0f - c->cur[i]) * chakra_light_screen_white(&c->fx);  // a kick: towards white
         rgb = (rgb << 8) | (uint32_t)(shown + 0.5f);
-    }
-    if (c->kick > 0.0f) {
-        c->kick = c->kick < 0.02f ? 0.0f : c->kick * KICK_DECAY;
-        if (c->ticks % 3 == 0 || c->kick == 0.0f) {
-            light(c);  // the lamps take the kick too, at most every third tick
-        }
     }
     if (rgb != c->drawn_rgb && spare(c)) {
         c->drawn_rgb = rgb;
@@ -535,31 +522,43 @@ static void settings_changed(struct chakra_core *c)
     }
 }
 
-static void light(struct chakra_core *c)
+/* One lamp command: the chakra's colour (or the fixed one) at the set brightness, with the kick or
+ * swell on top while the lamps are up, fading over transition_ms in the bulb. effect: a kick's or
+ * swell's own up or down command, which in silence goes to the last colour. */
+static void light_send(struct chakra_core *c, int transition_ms, bool effect)
 {
     if (!c->cfg.on_light) {
         return;
     }
+    int bright;
+    float white;
+    chakra_light_level(&c->fx, c->s.brightness, &bright, &white);
     const uint32_t fixed = fixed_rgb(c);
-    int bright = c->s.brightness + (int)((float)KICK_BRIGHT * c->kick + 0.5f);  // a strike kicks it up
-    bright = bright > 100 ? 100 : bright;
+    int which;
+    uint32_t rgb;
     if (fixed) {  // a steady light: its own colour, whatever the detection hears
-        c->cfg.on_light(c->s.color_mode == CHAKRA_COLOR_CHAKRA ? c->s.color_value : CHAKRA_FIXED_HUE, fixed, bright,
-                        c->cfg.ctx);
-        return;
+        which = c->s.color_mode == CHAKRA_COLOR_CHAKRA ? c->s.color_value : CHAKRA_FIXED_HUE;
+        rgb = fixed;
+    } else {
+        which = c->shown >= 0 ? c->shown : effect || chakra_light_active(&c->fx) ? c->last_shown : -1;
+        const chakra_info_t *info = chakra_info(which);
+        rgb = info ? info->rgb : 0;
     }
-    const int which = c->shown >= 0 ? c->shown : c->kick > 0.0f ? c->last_shown : -1;
-    const chakra_info_t *info = chakra_info(which);
-    uint32_t rgb = info ? info->rgb : 0;
-    if (rgb && c->kick > 0.0f) {  // the lamps go towards white with the kick, as the screen does
+    if (rgb && white > 0.0f) {  // the lamps go towards white with the kick, as the screen does
         uint32_t mixed = 0;
         for (int sh = 16; sh >= 0; sh -= 8) {
             const float v = (float)((rgb >> sh) & 0xFF);
-            mixed = (mixed << 8) | (uint32_t)(v + (255.0f - v) * KICK_WHITE * c->kick + 0.5f);
+            mixed = (mixed << 8) | (uint32_t)(v + (255.0f - v) * white + 0.5f);
         }
         rgb = mixed;
     }
-    c->cfg.on_light(which, rgb, bright, c->cfg.ctx);
+    c->cfg.on_light(which, rgb, bright, transition_ms, c->cfg.ctx);
+}
+
+/* A colour or setting change: the lamps fade like the screen, Flow softly, Strike at once. */
+static void light(struct chakra_core *c)
+{
+    light_send(c, c->s.reaction == CHAKRA_STRIKE ? LAMP_STRIKE_MS : LAMP_FLOW_MS, false);
 }
 
 /* A new colour choice: the background, the lamps and the settings follow at once. */
@@ -855,7 +854,11 @@ static void on_event(esp_gsp_handle_t ui, const esp_gsp_event_t *event, void *ct
         haptic(c, 1);
     } else if (gsp_chakra_event_is_ai_off(event) || gsp_chakra_event_is_ai_on(event)) {
         c->s.ai = gsp_chakra_event_is_ai_on(event) ? 1 : 0;
-        c->kick = 0.0f;
+        const bool up = c->fx.up != CHAKRA_EFFECT_NONE;
+        chakra_light_clear(&c->fx);
+        if (up) {
+            light_send(c, LAMP_FLOW_MS, true);  // lamps still up from a kick or swell: back to the base
+        }
         settings_changed(c);
         haptic(c, 1);
     } else if (gsp_chakra_event_is_lang_en(event) || gsp_chakra_event_is_lang_de(event)) {
@@ -872,6 +875,10 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
     (void)ui;
     struct chakra_core *c = ctx;
     c->ticks++;
+    const int down = chakra_light_tick(&c->fx);
+    if (down) {
+        light_send(c, down, true);  // a kick's or swell's second and last command: back, slowly
+    }
     c->tick_start = now(c);
     chakra_reading_t r;
     bool fresh = false;
@@ -899,10 +906,8 @@ static void tick(esp_gsp_handle_t ui, void *ctx)
             put(c, gsp_chakra_grp_pulse_set_visible, sounding);
         }
         /* With the AI gate, only a bowl-like sound may change the colour: a gong or a drum that
-         * the detection reads as a tone keeps the colour and kicks the light instead. */
-        const bool gate_live = c->gate_heard && c->ticks - c->gate_tick <= GATE_ALIVE_TICKS;
-        const bool ai_blocks = c->s.ai && gate_live && r.chakra >= 0 &&
-                               (!c->bowl_heard || c->ticks - c->bowl_tick > AI_HOLD_TICKS);
+         * the detection reads as a tone keeps the colour (a strike kicks, a gong swells instead). */
+        const bool ai_blocks = c->s.ai && r.chakra >= 0 && chakra_light_gate_holds(&c->fx);
         if (r.chakra != c->shown && !ai_blocks) {
             const bool from_silence = c->shown < 0;
             if (r.chakra >= 0) {
@@ -941,17 +946,17 @@ void chakra_core_set_sound(chakra_core_handle_t c, int kind, int strike)
     if (!c) {
         return;
     }
-    c->gate_tick = c->ticks;
-    c->gate_heard = true;
+    chakra_light_heard(&c->fx, kind);
     if (!c->s.ai) {
         return;
     }
-    if (kind == CHAKRA_SOUND_BOWL) {
-        c->bowl_tick = c->ticks;
-        c->bowl_heard = true;
-    } else if (kind == CHAKRA_SOUND_OTHER && strike) {
-        c->kick = 1.0f;
-        light(c);
+    /* A strike kicks at most once every 2 s; a gong swells instead and keeps the colour (a gong
+     * verdict is no bowl, so the colour rule above in tick() holds it). chakra_light.h. */
+    const int effect = chakra_light_sound(&c->fx, kind, strike != 0);
+    if (effect == CHAKRA_EFFECT_KICK) {
+        light_send(c, CHAKRA_KICK_UP_MS, true);
+    } else if (effect == CHAKRA_EFFECT_SWELL) {
+        light_send(c, CHAKRA_SWELL_UP_MS, true);
     }
 }
 
@@ -1007,6 +1012,7 @@ esp_gsp_err_t chakra_core_create(esp_gsp_handle_t ui, const chakra_core_config_t
     c->shown = -1;
     c->learn = -1;
     c->last_shown = -1;
+    chakra_light_init(&c->fx);
     c->dot_octave = 3;  // until a tone locks: a chakra set's root bowl is often C3
     c->lit_band = -1;
     c->tune_drawn = -1;

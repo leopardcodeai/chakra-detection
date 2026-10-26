@@ -2031,7 +2031,7 @@
    "h": 24,
    "min": 10,
    "max": 100,
-   "value": 60,
+   "value": 30,
    "track_size": 8,
    "radius": 12,
    "bg_color": "#3A3744",

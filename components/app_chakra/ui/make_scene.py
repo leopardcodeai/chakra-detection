@@ -37,7 +37,7 @@ COG, HA, BULB, WIFI, BT, CHECK, MONITOR = 0xF0493, 0xF07D0, 0xF0335, 0xF05A9, 0x
 WIFI_OFF, WIFI_SYNC = 0xF05AA, 0xF16C7  # the connection in the top bar, beside the gear (DESIGN.md)
 ON, OFF, TILE = "#6E5ACF", "#3A3744", "#2C2936"  # DESIGN.md: chosen, not chosen, a lamp row
 LAMPS = 4  # rows in the lamp list; chakra_core.h CHAKRA_LAMPS
-SLIDERS = [("bright", "Brightness", 10, 100, 60), ("hue", "Colour", 0, 359, 0), ("sens", "Sensitivity", 1, 10, 8),
+SLIDERS = [("bright", "Brightness", 10, 100, 30), ("hue", "Colour", 0, 359, 0), ("sens", "Sensitivity", 1, 10, 8),
            ("hold", "Afterglow", 5, 50, 15)]
 OPTIONS = [("map_notes", "Notes"), ("map_solf", "Solfeggio"), ("map_bowls", "Bowls"), ("lang_en", "EN"), ("lang_de", "DE")]
 
