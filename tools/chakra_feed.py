@@ -223,6 +223,8 @@ def main():
     ap.add_argument("--loop", action="store_true", help="wav: play the file again and again (a looped test video)")
     ap.add_argument("--ai", action="store_true", help="also run the AI sound gate (mic and wav only)")
     ap.add_argument("--port", type=int, default=int(os.environ.get("CHAKRA_FEED_PORT", "8698")))
+    ap.add_argument("--speaker", metavar="FLAGFILE",
+                    help="wav: also play the sound on the Mac's speakers while FLAGFILE exists (the launcher's Sound button)")
     ap.add_argument("--wait", action="store_true", help="retry for 2 min until the simulator listens")
     ap.add_argument("--dry-run", action="store_true", help="say what would be sent, connect to nothing")
     a = ap.parse_args()
@@ -264,6 +266,14 @@ def main():
             gate = start_gate(a.port + 1) if a.ai else None
             halving = gate is not None  # the rate stays what ffmpeg was started with, even if the gate dies
             proc = ffmpeg(src, AI_RATE if halving else RATE)
+            # The same samples to the Mac's speakers (owner 26.10.2026: "dass ich den Sound auch höre, bzw.
+            # an/aus schalten kann"): in step with the picture, silence while the flag file is gone.
+            speaker = None
+            if a.speaker and a.mode == "wav" and shutil.which("ffplay"):
+                speaker = subprocess.Popen(["ffplay", "-loglevel", "error", "-nodisp", "-autoexit", "-f", "s16le",
+                                            "-ch_layout", "mono", "-ar", str(AI_RATE if halving else RATE), "-i", "-"],
+                                           stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            heard_on, checked = False, 0.0
             print(("microphone open, Ctrl-C stops" if a.mode == "mic" else f"playing {a.arg}")
                   + (" (with the AI sound gate)" if gate else ""), flush=True)
             while True:
@@ -276,6 +286,13 @@ def main():
                         gate.stdin.flush()
                     except OSError:
                         gate = None  # the gate ended: the app goes on with the detection alone
+                if speaker:
+                    if time.monotonic() - checked > 0.3:
+                        heard_on, checked = os.path.exists(a.speaker), time.monotonic()
+                    try:
+                        speaker.stdin.write(data if heard_on else bytes(len(data)))
+                    except OSError:
+                        speaker = None  # the player ended: the app goes on without the speakers
                 if halving:
                     data = halve(data)
                 sock.sendall(data)
