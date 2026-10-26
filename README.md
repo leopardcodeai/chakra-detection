@@ -52,8 +52,10 @@ bigger models can add. (ChakraA: the audio one. ChakraV: with video.)
 <summary><b>The light and the AI gate in detail</b></summary>
 
 - **Kick.** With the gate on, a strike adds 8 brightness points and moves 8 % towards white, at most once
-  every 2 s: a drum at 4 beats a second never flashes per beat, and the change stays under the WCAG flash
-  line for every colour. Two lamp commands per kick (one up, one down).
+  every 2 s, so a drum at 4 beats a second never flashes per beat. The rate is what keeps it safe, not the
+  small step: a kick on red still counts as a red flash under WCAG however small, and a room lamp fills the
+  field of view. One kick every 2 s stays far under 3 flashes a second; compliance on real lamps is not
+  measured. Two lamp commands per kick (one up, one down).
 - **Gong swell.** A gong never kicks and never changes the colour: the lamps swell 12 points over 1.5 s and
   fall back over 7 s. A second head tells gongs from other sounds (`tools/bench/gong_head.py`; it finds
   45 % of the Commons gongs and 33 % of our own; a gong it misses gets the small kick).
