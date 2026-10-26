@@ -522,8 +522,7 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
     ch = git.get("chakra", {})
     hashes = manifest.get("data", {})
     st_all = R["results"]["strikes"].get("all_public" if public else "all", {})
-    subtitle = (f"Run {run.name}, chakra {str(ch.get('commit'))[:7]}"
-                f"{' with local changes' if ch.get('dirty_files') else ''}, {variant} variant")
+    subtitle = f"Run {run.name}, chakra {str(ch.get('commit'))[:7]}, {variant} variant"
     flow, strike = st_all.get("flow", {}), st_all.get("strike", {})
     doc.h(1, "Summary")
     head = []
@@ -732,7 +731,8 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
     chv = git.get("chakrav", {})
     doc.ul([
         f"chakra (ChakraA) commit `{str(ch.get('commit'))[:12]}` ({ch.get('subject', '')})"
-        + (f", with local changes in {len(ch.get('dirty_files', []))} files (diff hash `{str(ch.get('diff_sha256'))[:12]}`)"
+        + (f", {len(ch.get('dirty_files', []))} uncommitted paths at the start"
+           + (f" (diff hash `{str(ch.get('diff_sha256'))[:12]}`)" if ch.get("diff_sha256") else " (untracked only)")
            if ch.get("dirty_files") else ""),
         f"chakrav commit `{str(chv.get('commit'))[:12]}`",
         *([f"stages continued later ({', '.join(' '.join(c.get('argv', [])) for c in manifest['continued'])}), "
@@ -741,7 +741,8 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
         f"config hash `{manifest.get('config_sha256', '')[:12]}`; detector sources hash "
         f"`{str(manifest.get('code', {}).get('detector_sources_sha256', ''))[:12]}`; data hash `{hashes.get('all', '')[:12]}`",
         f"tools: Python {manifest.get('tools', {}).get('python')}, numpy {manifest.get('tools', {}).get('numpy')}, "
-        f"torch {manifest.get('tools', {}).get('torch')}, {manifest.get('tools', {}).get('ffmpeg', '')}",
+        f"torch {manifest.get('tools', {}).get('torch') or 'not in the pipeline interpreter (the gate stage runs in run.python)'}, "
+        f"{manifest.get('tools', {}).get('ffmpeg', '')}",
         "command: `tools/bench/pipeline.py` (stages fetch, own, detect, strikes, gate, light, report); "
         "`--run latest --from report --force` redraws only the report.",
     ])

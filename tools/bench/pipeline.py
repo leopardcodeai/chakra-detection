@@ -71,15 +71,16 @@ def expand(p: str | Path, base: Path | None = None) -> Path:
 
 
 def ensure_python(cfg: dict) -> None:
-    """Re-executes under the configured venv when numpy, scipy or matplotlib are missing here."""
+    """Re-executes under the configured venv, so every stage and the recorded versions come from one
+    interpreter (a Homebrew Python with numpy but without torch recorded torch as missing, 26.10.2026)."""
+    py = expand(cfg["run"]["python"])
+    if py.exists() and Path(sys.prefix).resolve() != py.parent.parent.resolve():
+        os.execv(str(py), [str(py), str(Path(__file__).resolve()), *sys.argv[1:]])
     try:
         import matplotlib  # noqa: F401
         import numpy  # noqa: F401
         import scipy  # noqa: F401
     except ImportError:
-        py = expand(cfg["run"]["python"])
-        if py.exists() and Path(sys.executable).resolve() != py.resolve():
-            os.execv(str(py), [str(py), str(Path(__file__).resolve()), *sys.argv[1:]])
         sys.exit(f"numpy, scipy and matplotlib are needed; set run.python in the config ({py})")
 
 
