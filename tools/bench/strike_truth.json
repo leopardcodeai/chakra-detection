@@ -1,0 +1,77 @@
+{
+ "_about": "Ground truth for public YouTube tune-up videos, read by pipeline.py (stage strikes). Per video: where the chakra of each bowl comes from, how the strike times are derived, and how far to trust both. Chakras: root, sacral, solar_plexus, heart, throat, third_eye, crown. Times in seconds of the video. Collected 26.10.2026 from the videos' own chapter lists, descriptions and YouTube's automatic captions (read, not stored).",
+ "videos": {
+  "-ar9vsmFhJU": {
+   "title": "11 MIN QUICK CHAKRA TUNE-UP (#1) W/LONG SINGLE TONES",
+   "channel": "templesounds",
+   "kind": "chapters",
+   "chakra_source": "the description's chapter list (00:53 Root Chakra ... 09:55 Crown Chakra, 11:43 all 7 bowls together) and 'Each bowl is struck 3 times', root to crown",
+   "strike_source": "derived: the 3 strongest spectral-flux onsets in each chapter, at least 4 s apart",
+   "reliability": "chakra high (the player's own chapter titles); strike times medium (the count of 3 is stated, the times are not)",
+   "strikes_per_segment": 3,
+   "min_gap_s": 4.0,
+   "note": "the 'root' bowl rings at G#3 (208 Hz): by note the app reads it as Throat. The intended chakra is scored, as a person in the room would.",
+   "segments": [
+    {"start": 53, "end": 159, "chakra": "root"},
+    {"start": 159, "end": 262, "chakra": "sacral"},
+    {"start": 262, "end": 372, "chakra": "solar_plexus"},
+    {"start": 372, "end": 469, "chakra": "heart"},
+    {"start": 469, "end": 534, "chakra": "throat"},
+    {"start": 534, "end": 595, "chakra": "third_eye"},
+    {"start": 595, "end": 703, "chakra": "crown"}
+   ]
+  },
+  "u1KjQTAHSlo": {
+   "title": "7 Chakra Tibetan Singing Bowl Set | Individual Notes & Harmonic Sound Test",
+   "channel": "RANA SINGING BOWL CENTRE",
+   "kind": "announced",
+   "chakra_source": "YouTube's automatic captions: before each bowl the seller says 'This is the crown chakra singing bowl tuned to note B', then third eye (A) down to root (C); the description lists the same notes",
+   "strike_source": "derived: the strongest spectral-flux onset between 1.5 s after the announcement (the sentence) and the next announcement",
+   "reliability": "chakra high (spoken by the seller, matches the description); strike times medium (one strike per bowl assumed; a bowl struck twice is scored at its strongest strike)",
+   "strikes_per_segment": 1,
+   "skip_after_cue_s": 1.5,
+   "segments": [
+    {"start": 101.67, "end": 141.15, "chakra": "crown"},
+    {"start": 141.15, "end": 178.31, "chakra": "third_eye"},
+    {"start": 178.31, "end": 216.87, "chakra": "throat"},
+    {"start": 216.87, "end": 254.47, "chakra": "heart"},
+    {"start": 254.47, "end": 286.03, "chakra": "solar_plexus"},
+    {"start": 286.03, "end": 318.91, "chakra": "sacral"},
+    {"start": 318.91, "end": 339.0, "chakra": "root"}
+   ]
+  },
+  "CPlC2404Ils": {
+   "title": "7 Chakra Tibetan Singing Bowl Set | Individual Notes & Harmonic Sound Test",
+   "channel": "Indian Craft Centre",
+   "kind": "duplicate",
+   "duplicate_of": "u1KjQTAHSlo",
+   "evidence": "the same recording under another channel: the detector gives the same segments with the same frequencies, shifted by 1.7 s; the captions announce the same bowls 1.4 to 1.8 s later. Counted once, as u1KjQTAHSlo, everywhere."
+  },
+  "8Qhh2VF1Oz4": {
+   "title": "Crystal Bowl 14 min Chakra Meditation~Notes CDEFGAB",
+   "channel": "templesounds",
+   "kind": "chapters_sustained",
+   "chakra_source": "the description ('the tones 1 by 1 ... starting from the Root Chakra and going up to the Crown') and the chapters 'Crystal Bowl #3' to '#7'; chapter '#1' (25 to 292 s) holds bowls 1 and 2 and is left out",
+   "strike_source": "none: crystal bowls are rung on, not struck; only the share of each chapter's time with the intended colour is scored",
+   "reliability": "chakra medium (bowl number read as chakra number, as the description says)",
+   "strikes_per_segment": 0,
+   "segments": [
+    {"start": 292, "end": 414, "chakra": "solar_plexus"},
+    {"start": 414, "end": 550, "chakra": "heart"},
+    {"start": 550, "end": 661, "chakra": "throat"},
+    {"start": 661, "end": 738, "chakra": "third_eye"},
+    {"start": 738, "end": 877, "chakra": "crown"}
+   ]
+  },
+  "ePKXtFLYnUs": {
+   "title": "Tranquil Lake 7 Bowl Chakra Set ~ Notes CDEFGAB",
+   "kind": "none",
+   "why": "the title names the set's notes, not the order or the times; no chapters or captions. Used for the light measures only."
+  },
+  "_RijJiX5rng": {
+   "title": "Giant Himalayan Double Spinning OM Bowls ~ Full 7 Note Chakra Meditation",
+   "kind": "none",
+   "why": "no chapters or captions with the order. Used for the light measures only."
+  }
+ }
+}

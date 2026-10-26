@@ -18,6 +18,8 @@ Why:  owner 25.10.2026: "für den Comment nur Antwort für Audio mit und ohne AI
       mit AI on/off". The question a sound healer asks: does a gong or a drum still paint the room?
 Pitfalls:
   * Window labels come from the clip's class; a "drum" clip with a bell in it counts as drum.
+  * Pronunciations of a class word (Lingua Libre, Wiktionary) are speech, not the instrument; up to
+    26.10.2026 they were in the shaker and gong classes. clips() leaves them out (fetch_clips.PRONUNCIATION).
   * The trained head sees the same recordings' classes; the folds split by clip, so a held-out
     clip is never in training, but sessions in one room would still be easier than these.
   * Times are the Mac's CPU (EfficientAT in float). The S31 numbers are estimates elsewhere.
@@ -76,20 +78,20 @@ SEG = re.compile(r"^\s*([\d.]+)-\s*([\d.]+) s\s+(\S+)")
 def clips() -> list[dict]:
     """sources.json (fetch_clips.py) and extra_sources.json (the first benchmark's Commons clips),
     each file once: names are compared without a URL query an older fetch left on them."""
+    from fetch_clips import CLASSES, PRONUNCIATION  # spoken words ("De-Shaker.ogg") are not instruments
     out, seen = [], set()
     for name in ("extra_sources.json", "sources.json"):
         f = CLIPS / name
         for c in json.loads(f.read_text()) if f.exists() else []:
             key = Path(c["file"]).name.split("?")[0].replace(" ", "_").lower()
-            if key not in seen and (CLIPS / c["file"]).exists():
+            if key not in seen and (CLIPS / c["file"]).exists() and not PRONUNCIATION.match(c["title"].lower()):
                 seen.add(key)
                 out.append(c)
     # Files a running fetch has saved but not yet listed: the folder is the class.
-    from fetch_clips import CLASSES
     for d in sorted(x for x in CLIPS.iterdir() if x.is_dir() and x.name in CLASSES):
         for f in sorted(d.iterdir()):
             key = f.name.split("?")[0].replace(" ", "_").lower()
-            if key not in seen and f.is_file():
+            if key not in seen and f.is_file() and not PRONUNCIATION.match("file:" + f.name.lower().replace("_", " ")):
                 seen.add(key)
                 out.append({"class": d.name, "expect": CLASSES[d.name][0], "file": f"{d.name}/{f.name}",
                             "title": "File:" + f.name.split("?")[0].replace("_", " ")})

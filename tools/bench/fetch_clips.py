@@ -16,6 +16,8 @@ Pitfalls:
     wait PAUSE_S, downloads DOWNLOAD_PAUSE_S, both back off and retry, with a descriptive
     User-Agent as Wikimedia asks (25.10.2026: 1.2 s between downloads got 110 of 123 refused).
   * "throat" alone matched bird recordings ("White-throated Sparrow"): class words are phrases.
+  * Pronunciations of the class word (Lingua Libre "LL-Q...", Wiktionary "De-Shaker.ogg") are
+    speech, not the instrument: PRONUNCIATION skips them.
   * A search hit can be the wrong instrument (a "gong" in a gamelan piece with drums). Titles
     with words from EXCLUDE are skipped; the rest is checked by ear for the published table.
   * Idempotent: a file already on disk is not fetched again; sources.json is rewritten whole.
@@ -23,6 +25,7 @@ Usage:  fetch_clips.py [--per-class 15] [--dry-run]
 """
 import argparse
 import json
+import re
 import sys
 import time
 import urllib.parse
@@ -43,6 +46,10 @@ PAUSE_S, DOWNLOAD_PAUSE_S, MAX_MB = 1.2, 4.0, 25
 AUDIO = (".ogg", ".oga", ".wav", ".flac", ".mp3", ".opus")
 FREE = ("public domain", "cc0", "cc by", "cc-by", "pd")
 EXCLUDE = ("orchestra", "symphony", "song", "speech", "interview", "podcast", "national anthem")
+# Spoken words, not instruments: Lingua Libre ("LL-Q150 (fra)-Name-shaker.wav") and Wiktionary
+# pronunciations ("De-Shaker.ogg", "En-us-gong.ogg"). 26.10.2026: nine "shakers" were the word.
+PRONUNCIATION = re.compile(r"^file:(ll-q\d+|(en|de|nl|fr|es|it|pt|pl|ru|sv|fi|da|nb|no|cs|hu|ro|tr|ja|zh|ko|uk|el|ca|eu|"
+                           r"gl|la|eo)(-[a-z]{2,4})?-[^ ]+\.(ogg|oga|wav|mp3|flac|opus)$)")
 # Searched in this order (a file found by an earlier class is not taken again), each with the
 # words one of which the file name itself must contain: Commons searches descriptions too, so a
 # drum search returns rainsticks and a chant search returns podcasts.
@@ -102,7 +109,7 @@ def plan(per_class: int) -> list[dict]:
         for term in terms:
             for t in search(term):
                 low = t.lower()
-                if (t in seen or not low.endswith(AUDIO) or any(w in low for w in EXCLUDE)
+                if (t in seen or not low.endswith(AUDIO) or any(w in low for w in EXCLUDE) or PRONUNCIATION.match(low)
                         or not any(w in low for w in words)):
                     continue
                 titles.append(t)

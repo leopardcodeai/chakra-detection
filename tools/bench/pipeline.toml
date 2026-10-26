@@ -1,0 +1,61 @@
+# Configuration of tools/bench/pipeline.py. A copy goes into every run folder, so a run can be repeated
+# from it: pipeline.py --config RUN/config.toml. Paths with ~ are expanded; relative data paths are
+# below data.state, relative repo paths below the chakra repository.
+
+[run]
+root = "~/Library/Application Support/LeopardCode/chakra/eval_runs"   # one folder per run, <date>_<time>
+python = "~/Library/Application Support/LeopardCode/chakra/ai_venv_eat/bin/python"  # numpy, scipy, matplotlib, torch
+workers = 6            # detector runs in parallel
+seed = 26102026        # bootstrap draws
+bootstrap = 10000      # resamples for every interval
+
+[data]
+state = "~/Library/Application Support/LeopardCode/chakra"
+commons = "bench_clips"                 # fetch_clips.py: sources.json and extra_sources.json
+youtube = "youtube"                     # sources.json: 25 public videos (not redistributed)
+own_dirs = ["own_media/chakrav_training", "own_media/one"]   # private, never in a public report
+own_events = "own_media/own_events.json"
+own_labels = "own_media/own_labels.json"
+truth_public = "tools/bench/strike_truth.json"
+cache = "eval_cache"                    # 16 kHz WAVs, content hashes and detector outputs, shared by runs
+chakrav_repo = "~/Coding/esp/apps/chakrav"   # only its commit is recorded
+
+[stages.fetch]
+enabled = true
+per_class = 15
+
+[stages.own]
+export = false          # Photos export (slow, asks for Automation once); the exported videos are reused
+label = true            # label_own.py proposes labels for videos not labelled yet
+album = "ChakraV Training"
+
+[stages.detect]
+mapping = "notes"
+a4_hz = 440
+# The app's two reactions (chakra_core.c): Flow locks after 384 ms and switches after 1500 ms,
+# Strike after 128 and 256 ms (tests/analyse.sh --lock 128 256).
+modes = { flow = [], strike = ["--lock", "128", "256"] }
+
+[stages.strikes]
+window_s = 3.0          # a strike is right if its chakra shows within this, or before the next strike
+early_s = 0.1           # the marks are good to about 0.1 s
+onset_min_gap_s = 0.4
+onset_prominence = 1.0  # candidates; the order alignment and the strongest-onset rules choose among them
+round_window_s = 40.0   # own rounds: onsets in the first 40 s
+mark_snap_s = 1.6       # hand marks snap to the nearest onset within this (IMG_2144's marks came from 1 fps frames)
+uncertain_gain = 0.1    # a derived strike whose bowl gained less than 10 % of the new energy is flagged
+
+[stages.gate]
+models = "mn05_as"      # the model meant for the board
+windows = "2"           # 2 s windows, as in the README table
+own = true              # a second, private run with the owner's checked segments (--own)
+save_head = false       # never overwrite the app's head from an evaluation run
+
+[stages.light]
+short_s = 3.0           # a colour that stands under 3 s is counted as short
+flash_limit_per_s = 3.0 # photosensitivity guidance: no more than three flashes a second
+
+[stages.report]
+variants = ["private", "public"]   # public: Commons and YouTube only; own data as numbers, never names
+pdf = true                          # docgen (design_agent) renders report.html to PDF with Chrome
+public_copy = "docs/evaluation"     # the public variant is also copied into the repository here
