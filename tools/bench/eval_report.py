@@ -578,10 +578,10 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
           "u1KjQTAHSlo under another channel, shifted by 1.7 s). Commons clips are single recordings of one "
           "instrument, not sessions; the YouTube and own sessions are the nearest thing to a room.")
     if cleaning.get("commons_pronunciations_left_out"):
-        doc.p(f"**Data cleaning:** {cleaning['commons_pronunciations_left_out']} Commons files found by the word "
-              "searches are recordings of someone saying the word ('shaker', 'gong', 'maraca': Lingua Libre and "
-              "Wiktionary pronunciations), not the instrument. They are left out here; the README table of "
-              "25 October still counted 12 of them among its 91 clips (11 as shakers, 1 as a gong).")
+        doc.p(f"**Data cleaning:** {cleaning['commons_pronunciations_left_out']} entries of the Commons source lists "
+              "are recordings of someone saying the word ('shaker', 'gong', 'maraca': Lingua Libre and Wiktionary "
+              "pronunciations), not the instrument; they are left out (fetch_clips.PRONUNCIATION). Up to 25 October "
+              "2026, 12 such files were counted among the benchmark's 91 clips (11 as shakers, 1 as a gong).")
 
     doc.h(1, "Method")
     doc.ul([
@@ -720,6 +720,10 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
         "checked. The YouTube chakra labels are what the players say their bowls are, not measured pitches.",
         "**One set of own bowls, one room.** All own rounds use the same seven bowls; another set, mallet or room "
         "may behave differently.",
+        "**Latency resolution.** The detector prints its colour changes to 0.1 s, and the reference onset is the "
+        "peak of the spectral flux, which for a soft felt mallet comes some tens of milliseconds after the attack "
+        "begins. Latencies are good to about 0.1 s; a Strike latency near zero means 'within a hop or two of the "
+        "flux peak', not 'before the sound'.",
         "**Not the board.** The detector runs on the Mac from audio files; the ESP32-S31's microphone, its gain and "
         "its timing are not measured here, and the lamps add their own delay.",
     ])
@@ -731,6 +735,9 @@ def build(run: Path, cfg: dict, variant: str, recs: list[dict] | None = None, pd
         + (f", with local changes in {len(ch.get('dirty_files', []))} files (diff hash `{str(ch.get('diff_sha256'))[:12]}`)"
            if ch.get("dirty_files") else ""),
         f"chakrav commit `{str(chv.get('commit'))[:12]}`",
+        *([f"stages continued later ({', '.join(' '.join(c.get('argv', [])) for c in manifest['continued'])}), "
+           f"last at chakra commit `{str(manifest['continued'][-1]['git']['chakra'].get('commit'))[:12]}`"]
+          if manifest.get("continued") else []),
         f"config hash `{manifest.get('config_sha256', '')[:12]}`; detector sources hash "
         f"`{str(manifest.get('code', {}).get('detector_sources_sha256', ''))[:12]}`; data hash `{hashes.get('all', '')[:12]}`",
         f"tools: Python {manifest.get('tools', {}).get('python')}, numpy {manifest.get('tools', {}).get('numpy')}, "
