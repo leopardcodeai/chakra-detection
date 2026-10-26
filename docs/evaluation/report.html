@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>ChakraA: how well the app hears a singing bowl</title>
+<style>/* ==========================================================================
+   Die Token-Schicht der Firma. EINE Quelle für alle Oberflächen.
+
+   Herkunft: Amana 2.0, Entwurf vom 15.08.2026. Unverändert übernommen, damit
+   Produkt und Firmenoberflächen nicht auseinanderlaufen. Wer hier einen Wert
+   ändert, ändert ihn auch im AMANA-Repo in gateway/static/app.css.
+
+   Wer diese Datei benutzt:
+     Cockpit    eingebettet über tokens.py (ein Artifact lädt nichts nach)
+     AMANA      gateway/static/app.css, dazu als Bytekopie workspace-tokens.css (sync_workspace.py)
+     Dokumente  noch offen, siehe das Handbuch des design_agent
+     Website    noch offen, dort steht Tailwind davor
+
+   Das System dahinter: company-brain/DESIGN.md
+   ========================================================================== */
+
+/* ==========================================================================
+   Amana 2.0 — the token layer of the preview.
+   Written so it can move into gateway/static/app.css unchanged: the same
+   names the product already uses (--bg, --card, --border, --accent …) keep
+   their meaning, the new ones sit beside them.
+   ========================================================================== */
+:root{
+  /* ---- surface ladder -------------------------------------------------
+     Four steps instead of two. The old file had --bg and --card, and every
+     third surface was invented on the spot inside a component. */
+  --bg:#f4f5f7;          /* the ground between the panels */
+  --card:#ffffff;        /* panels, cards, the working surface */
+  --surface:#f1f2f4;     /* sunken: fields, code, secondary rails */
+  --raised:#ffffff;      /* floats above the card (popover, composer) */
+  --hover:#eceef1;
+  --btn-hover:#f4f5f7;
+  --code:#f5f6f8;
+
+  /* ---- lines ---------------------------------------------------------- */
+  --border:#e3e5e9;      /* the standard hairline */
+  --border-soft:#edeef1; /* dividers inside a card */
+  --border-strong:#d3d6dc;
+
+  /* ---- ink ------------------------------------------------------------ */
+  --text:#16181d;
+  --text-2:#3d424b;      /* secondary body */
+  --muted:#63697a;       /* AA on --bg and --card, checked in test_kontrast */
+  --faint:#8b91a0;       /* icons at rest, placeholders */
+
+  /* ---- accent (a space overrides it, see branding) --------------------- */
+  --accent:#0066cc;
+  --accent-hover:#0058b0;
+  --accent-ink:#ffffff;
+  --accent-bg:color-mix(in srgb,var(--accent) 10%,transparent);
+  --accent-line:color-mix(in srgb,var(--accent) 26%,transparent);
+  --primary:var(--accent);
+  --primary-hover:var(--accent-hover);
+  --focus:var(--accent);
+  /* Redesign 08.10.2026, additive (AMANA's exact values, app.css shadows them):
+     text and icon on an --accent-bg tint (the marked rail row, 6.4:1 light), and
+     the one filled control. */
+  --accent-on-bg:color-mix(in srgb,var(--accent) 78%,#000);
+  --accent-fill:var(--accent-src-fill,var(--accent));
+  /* Die eine gefuellte Handlung der oeffentlichen Flaechen (Kontakt, Demo
+     ansehen, Beratung). Sie ist in beiden Schemata derselbe Blauton, damit
+     leopardcode.ai, die AMANA-Landing und der Blog denselben Knopf zeigen;
+     gemessen an leopardcode.ai am 14.09.2026. */
+  --accent-solid:#0071e3;
+  --accent-solid-ink:#ffffff;
+  /* Das "Code" in der Wortmarke. Eigener Ton, weil Blau als SCHRIFT auf
+     hellem Grund dunkler sein muss als als Flaeche: gemessen am 15.08.2026
+     auf leopardcode.ai, #005bbb besteht auf allen vier Gruenden der Seite
+     (6,16 bis 5,08:1), #0071e3 nur 4,43:1. */
+  --wordmark-accent:#005bbb;
+
+  /* ---- semantic ------------------------------------------------------- */
+  --green:#1d7a48;--green-bg:color-mix(in srgb,#1d7a48 12%,transparent);
+  --amber:#8a5d00;--amber-bg:color-mix(in srgb,#8a5d00 12%,transparent);
+  --danger:#b3261e;--danger-bg:color-mix(in srgb,#b3261e 10%,transparent);
+
+  /* ---- radii ----------------------------------------------------------
+     Pills only where something really is a pill (badge, toggle, avatar).
+     Buttons at 8px: that is the line between "product" and "consumer app". */
+  --r-xs:6px;--r-sm:8px;--r-md:10px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  --radius:var(--r-sm);
+  --panel-radius:var(--r-xl);
+
+  /* ---- elevation ------------------------------------------------------
+     Structure comes from hairlines, floating comes from shadow. Nothing
+     that sits still gets a shadow. */
+  --e1:0 1px 2px rgba(16,18,23,.05);
+  --e2:0 1px 2px rgba(16,18,23,.05),0 6px 16px -6px rgba(16,18,23,.12);
+  --e3:0 8px 24px -8px rgba(16,18,23,.16),0 32px 64px -24px rgba(16,18,23,.24);
+  --panel-ring:inset 0 0 0 1px var(--border);
+
+  /* ---- type ----------------------------------------------------------- */
+  --t-micro:11px;--t-caption:12px;--t-chrome:13px;--t-ui:14px;--t-body:15px;
+  --t-lead:17px;--t-section:20px;--t-page:26px;--t-display:34px;
+
+  /* ---- space (4px base) ------------------------------------------------ */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s7:32px;--s8:40px;--s9:56px;
+
+  /* ---- geometry -------------------------------------------------------- */
+  --sidebar-w:264px;--topbar-h:48px;--row-h:44px;
+  --w-prose:680px;--w-form:760px;--w-wide:1060px;
+
+  /* ---- material -------------------------------------------------------
+     Durchscheinende Leiste, hinter der Inhalt weiterläuft: Kopfzeile,
+     Reiterleiste, Werkzeugleiste. Ergänzt am 15.08.2026 für das Cockpit,
+     steht hier statt dort, weil jede Oberfläche eine Kopfzeile hat.
+
+     Achtung: Der Deckungsgrad ist eine Messentscheidung, keine Geschmacksfrage.
+     Bei 80 % bleibt Text auf der Leiste auch dann über AA, wenn darunter
+     das Extrem durchscheint (hell: eine gesättigte Pille, dunkel: eine
+     weiße Fläche); nachgerechnet, schlechtester Fall 7,6:1. Wer den Wert
+     senkt, misst neu, sonst hängt die Lesbarkeit daran, was gerade
+     vorbeiscrollt. */
+  --material:color-mix(in srgb,var(--card) 80%,transparent);
+  --material-blur:saturate(180%) blur(20px);
+
+  /* ---- Papier ---------------------------------------------------------
+     Papier ist in beiden Schemata Papier. Deshalb steht die Drucktinte NICHT
+     im Dunkelblock unten: ein PDF liegt auf einem Blatt, und ein Blatt hat
+     kein Farbschema. Wer den Druckstil aus den Bildschirmtokens speist,
+     baut sich eine Fassung, die dunkel wird, sobald der Renderer dunkel
+     denkt. Uebernommen am 15.08.2026 aus dem LeopardCode-Designsystem
+     (Amana 2.0), das die Frage genau so beantwortet.
+
+     Die Werte sind bewusst nicht die des hellen Schirms: Papier verliert
+     Kontrast, deshalb ist die kraeftige Linie dunkler (--p-linie-strong
+     #c8cfd6 gegen --border-strong #d3d6dc) und die Tinte etwas weicher
+     (#1d2126 gegen #16181d), weil Toner auf Papier ohnehin zulaeuft. */
+  --p-tinte:#1d2126;          /* Fliesstext, Ueberschriften */
+  --p-tinte-2:#3d434b;        /* Tabellenzellen, zweite Ebene */
+  --p-leise:#6b7480;          /* Meta, Bildunterschrift, Fuss */
+  --p-linie:#e4e8ec;          /* die normale Linie */
+  --p-linie-soft:#dfe3e8;     /* Trenner innerhalb eines Kastens */
+  --p-linie-strong:#c8cfd6;   /* Tabellengitter, Rahmen */
+  --p-zeile:#e8ebee;          /* Zeilenfuellung, Tabellenkopf */
+  --p-platzhalter:#9aa3ad;    /* leeres Feld zum Ausfuellen */
+  --p-akzent:#0066cc;         /* Verweise im Druck */
+  --p-blatt:#ffffff;          /* das Blatt selbst */
+  --p-code:#f6f7f8;           /* Kopierkasten */
+  /* Bedeutung auf Papier. Dieselben Toene wie am hellen Schirm, aber eigene
+     Namen, weil --green im Dunkelmodus umschlaegt und ein Blatt das nicht
+     mitmacht. Die Flaechen sind ausgerechnet statt gemischt: ueber einem
+     weissen Blatt ist beides dasselbe, und ein fester Wert laesst sich
+     drucken und nachmessen. */
+  --p-gut:#1d7a48;--p-gut-flaeche:#eef6f1;
+  --p-warn:#8a5d00;--p-warn-flaeche:#f9f4e9;
+  --p-schlecht:#b3261e;--p-schlecht-flaeche:#fbeeed;
+
+  /* ---- motion ---------------------------------------------------------- */
+  --fast:120ms cubic-bezier(.2,0,.2,1);
+  --slow:200ms cubic-bezier(.2,0,.2,1);
+  /* Überschwingt leicht und kommt zurück. Nur für Eintritte und Hebungen,
+     nie für Farbe: eine Farbe, die überschwingt, sieht nach Fehler aus. */
+  --spring:340ms cubic-bezier(.34,1.28,.64,1);
+
+  /* ---- redesign tokens (08.10.2026, additive) ---------------------------
+     New names only; no value above changes, so AMANA (whose app.css shadows
+     the shared names) cannot drift. --fast, --slow and --spring keep their
+     literals and equal their parts below (check_system.py holds that). */
+  --dur-fast:120ms;--dur-slow:200ms;--dur-spring:340ms;
+  --ease-std:cubic-bezier(.2,0,.2,1);--ease-spring:cubic-bezier(.34,1.28,.64,1);
+  --loop:1.2s ease-in-out infinite;       /* pulse dots: assistant busy, live */
+  --backdrop:rgba(9,10,12,.45);           /* behind a modal, a palette, a drawer */
+  --r-pill:999px;
+  --s0:2px;                               /* the row gap of a rail */
+  /* Leopard DECK, the wordmark of DECK in the rail (18.10.2026, brand/ARCHITECTURE.md):
+     the tracking of its capitals and the size of its mark; no colour of its own. */
+  --deck-tracking:.06em;
+  --deck-mark:22px;
+  /* One z scale instead of literals: sticky heads, the top bar, popovers,
+     drawers, tooltips, modals. */
+  --z-sticky:10;--z-bar:60;--z-popover:70;--z-drawer:90;--z-tooltip:95;--z-modal:200;
+}
+
+/* Dark: only the tokens are redefined. Three real steps, so the panels are
+   readable AS panels — the old dark mode had --bg and --card almost equal
+   and the whole inset layout disappeared. */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d0e10;--card:#17181b;--surface:#1e2024;--raised:#212328;
+  --hover:#25272c;--btn-hover:#25272c;--code:#141518;
+  --border:rgba(255,255,255,.09);--border-soft:rgba(255,255,255,.06);
+  --border-strong:rgba(255,255,255,.16);
+  --text:#f3f4f6;--text-2:#c9cdd4;--muted:#98a0ad;--faint:#767e8b;
+  --accent:#4d9bff;--accent-hover:#6cadff;--accent-ink:#08121f;
+  --accent-solid:#0071e3;--accent-solid-ink:#ffffff;
+  --wordmark-accent:#2997ff;
+  --green:#5cbe84;--green-bg:color-mix(in srgb,#5cbe84 16%,transparent);
+  --amber:#d8a75a;--amber-bg:color-mix(in srgb,#d8a75a 16%,transparent);
+  --danger:#f08a84;--danger-bg:color-mix(in srgb,#f08a84 14%,transparent);
+  --e1:0 1px 2px rgba(0,0,0,.4);
+  --e2:0 1px 2px rgba(0,0,0,.4),0 8px 20px -8px rgba(0,0,0,.6);
+  --e3:0 12px 32px -12px rgba(0,0,0,.7),0 40px 80px -30px rgba(0,0,0,.8);
+  --accent-on-bg:var(--accent);--backdrop:rgba(0,0,0,.6);
+}}
+/* The second selector is for the preview only: it lets a single frame on the
+   page carry the dark theme. In the product :root alone carries it. */
+:root[data-theme="dark"],[data-theme="dark"]{
+  --bg:#0d0e10;--card:#17181b;--surface:#1e2024;--raised:#212328;
+  --hover:#25272c;--btn-hover:#25272c;--code:#141518;
+  --border:rgba(255,255,255,.09);--border-soft:rgba(255,255,255,.06);
+  --border-strong:rgba(255,255,255,.16);
+  --text:#f3f4f6;--text-2:#c9cdd4;--muted:#98a0ad;--faint:#767e8b;
+  --accent:#4d9bff;--accent-hover:#6cadff;--accent-ink:#08121f;
+  --accent-solid:#0071e3;--accent-solid-ink:#ffffff;
+  --wordmark-accent:#2997ff;
+  --green:#5cbe84;--green-bg:color-mix(in srgb,#5cbe84 16%,transparent);
+  --amber:#d8a75a;--amber-bg:color-mix(in srgb,#d8a75a 16%,transparent);
+  --danger:#f08a84;--danger-bg:color-mix(in srgb,#f08a84 14%,transparent);
+  --e1:0 1px 2px rgba(0,0,0,.4);
+  --e2:0 1px 2px rgba(0,0,0,.4),0 8px 20px -8px rgba(0,0,0,.6);
+  --e3:0 12px 32px -12px rgba(0,0,0,.7),0 40px 80px -30px rgba(0,0,0,.8);
+  --accent-on-bg:var(--accent);--backdrop:rgba(0,0,0,.6);
+}
+
+/* Scoped light previews use the same canonical token values. */
+[data-theme="light"]{  /* ---- surface ladder -------------------------------------------------
+     Four steps instead of two. The old file had --bg and --card, and every
+     third surface was invented on the spot inside a component. */
+  --bg:#f4f5f7;          /* the ground between the panels */
+  --card:#ffffff;        /* panels, cards, the working surface */
+  --surface:#f1f2f4;     /* sunken: fields, code, secondary rails */
+  --raised:#ffffff;      /* floats above the card (popover, composer) */
+  --hover:#eceef1;
+  --btn-hover:#f4f5f7;
+  --code:#f5f6f8;
+
+  /* ---- lines ---------------------------------------------------------- */
+  --border:#e3e5e9;      /* the standard hairline */
+  --border-soft:#edeef1; /* dividers inside a card */
+  --border-strong:#d3d6dc;
+
+  /* ---- ink ------------------------------------------------------------ */
+  --text:#16181d;
+  --text-2:#3d424b;      /* secondary body */
+  --muted:#63697a;       /* AA on --bg and --card, checked in test_kontrast */
+  --faint:#8b91a0;       /* icons at rest, placeholders */
+
+  /* ---- accent (a space overrides it, see branding) --------------------- */
+  --accent:#0066cc;
+  --accent-hover:#0058b0;
+  --accent-ink:#ffffff;
+  --accent-bg:color-mix(in srgb,var(--accent) 10%,transparent);
+  --accent-line:color-mix(in srgb,var(--accent) 26%,transparent);
+  --primary:var(--accent);
+  --primary-hover:var(--accent-hover);
+  --focus:var(--accent);
+  /* Redesign 08.10.2026, additive (AMANA's exact values, app.css shadows them):
+     text and icon on an --accent-bg tint (the marked rail row, 6.4:1 light), and
+     the one filled control. */
+  --accent-on-bg:color-mix(in srgb,var(--accent) 78%,#000);
+  --accent-fill:var(--accent-src-fill,var(--accent));
+  /* Die eine gefuellte Handlung der oeffentlichen Flaechen (Kontakt, Demo
+     ansehen, Beratung). Sie ist in beiden Schemata derselbe Blauton, damit
+     leopardcode.ai, die AMANA-Landing und der Blog denselben Knopf zeigen;
+     gemessen an leopardcode.ai am 14.09.2026. */
+  --accent-solid:#0071e3;
+  --accent-solid-ink:#ffffff;
+  /* Das "Code" in der Wortmarke. Eigener Ton, weil Blau als SCHRIFT auf
+     hellem Grund dunkler sein muss als als Flaeche: gemessen am 15.08.2026
+     auf leopardcode.ai, #005bbb besteht auf allen vier Gruenden der Seite
+     (6,16 bis 5,08:1), #0071e3 nur 4,43:1. */
+  --wordmark-accent:#005bbb;
+
+  /* ---- semantic ------------------------------------------------------- */
+  --green:#1d7a48;--green-bg:color-mix(in srgb,#1d7a48 12%,transparent);
+  --amber:#8a5d00;--amber-bg:color-mix(in srgb,#8a5d00 12%,transparent);
+  --danger:#b3261e;--danger-bg:color-mix(in srgb,#b3261e 10%,transparent);
+
+  /* ---- radii ----------------------------------------------------------
+     Pills only where something really is a pill (badge, toggle, avatar).
+     Buttons at 8px: that is the line between "product" and "consumer app". */
+  --r-xs:6px;--r-sm:8px;--r-md:10px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  --radius:var(--r-sm);
+  --panel-radius:var(--r-xl);
+
+  /* ---- elevation ------------------------------------------------------
+     Structure comes from hairlines, floating comes from shadow. Nothing
+     that sits still gets a shadow. */
+  --e1:0 1px 2px rgba(16,18,23,.05);
+  --e2:0 1px 2px rgba(16,18,23,.05),0 6px 16px -6px rgba(16,18,23,.12);
+  --e3:0 8px 24px -8px rgba(16,18,23,.16),0 32px 64px -24px rgba(16,18,23,.24);
+  --panel-ring:inset 0 0 0 1px var(--border);
+
+  /* ---- type ----------------------------------------------------------- */
+  --t-micro:11px;--t-caption:12px;--t-chrome:13px;--t-ui:14px;--t-body:15px;
+  --t-lead:17px;--t-section:20px;--t-page:26px;--t-display:34px;
+
+  /* ---- space (4px base) ------------------------------------------------ */
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s7:32px;--s8:40px;--s9:56px;
+
+  /* ---- geometry -------------------------------------------------------- */
+  --sidebar-w:264px;--topbar-h:48px;--row-h:44px;
+  --w-prose:680px;--w-form:760px;--w-wide:1060px;
+
+  /* ---- material -------------------------------------------------------
+     Durchscheinende Leiste, hinter der Inhalt weiterläuft: Kopfzeile,
+     Reiterleiste, Werkzeugleiste. Ergänzt am 15.08.2026 für das Cockpit,
+     steht hier statt dort, weil jede Oberfläche eine Kopfzeile hat.
+
+     Achtung: Der Deckungsgrad ist eine Messentscheidung, keine Geschmacksfrage.
+     Bei 80 % bleibt Text auf der Leiste auch dann über AA, wenn darunter
+     das Extrem durchscheint (hell: eine gesättigte Pille, dunkel: eine
+     weiße Fläche); nachgerechnet, schlechtester Fall 7,6:1. Wer den Wert
+     senkt, misst neu, sonst hängt die Lesbarkeit daran, was gerade
+     vorbeiscrollt. */
+  --material:color-mix(in srgb,var(--card) 80%,transparent);
+  --material-blur:saturate(180%) blur(20px);
+
+  /* ---- Papier ---------------------------------------------------------
+     Papier ist in beiden Schemata Papier. Deshalb steht die Drucktinte NICHT
+     im Dunkelblock unten: ein PDF liegt auf einem Blatt, und ein Blatt hat
+     kein Farbschema. Wer den Druckstil aus den Bildschirmtokens speist,
+     baut sich eine Fassung, die dunkel wird, sobald der Renderer dunkel
+     denkt. Uebernommen am 15.08.2026 aus dem LeopardCode-Designsystem
+     (Amana 2.0), das die Frage genau so beantwortet.
+
+     Die Werte sind bewusst nicht die des hellen Schirms: Papier verliert
+     Kontrast, deshalb ist die kraeftige Linie dunkler (--p-linie-strong
+     #c8cfd6 gegen --border-strong #d3d6dc) und die Tinte etwas weicher
+     (#1d2126 gegen #16181d), weil Toner auf Papier ohnehin zulaeuft. */
+  --p-tinte:#1d2126;          /* Fliesstext, Ueberschriften */
+  --p-tinte-2:#3d434b;        /* Tabellenzellen, zweite Ebene */
+  --p-leise:#6b7480;          /* Meta, Bildunterschrift, Fuss */
+  --p-linie:#e4e8ec;          /* die normale Linie */
+  --p-linie-soft:#dfe3e8;     /* Trenner innerhalb eines Kastens */
+  --p-linie-strong:#c8cfd6;   /* Tabellengitter, Rahmen */
+  --p-zeile:#e8ebee;          /* Zeilenfuellung, Tabellenkopf */
+  --p-platzhalter:#9aa3ad;    /* leeres Feld zum Ausfuellen */
+  --p-akzent:#0066cc;         /* Verweise im Druck */
+  --p-blatt:#ffffff;          /* das Blatt selbst */
+  --p-code:#f6f7f8;           /* Kopierkasten */
+  /* Bedeutung auf Papier. Dieselben Toene wie am hellen Schirm, aber eigene
+     Namen, weil --green im Dunkelmodus umschlaegt und ein Blatt das nicht
+     mitmacht. Die Flaechen sind ausgerechnet statt gemischt: ueber einem
+     weissen Blatt ist beides dasselbe, und ein fester Wert laesst sich
+     drucken und nachmessen. */
+  --p-gut:#1d7a48;--p-gut-flaeche:#eef6f1;
+  --p-warn:#8a5d00;--p-warn-flaeche:#f9f4e9;
+  --p-schlecht:#b3261e;--p-schlecht-flaeche:#fbeeed;
+
+  /* ---- motion ---------------------------------------------------------- */
+  --fast:120ms cubic-bezier(.2,0,.2,1);
+  --slow:200ms cubic-bezier(.2,0,.2,1);
+  /* Überschwingt leicht und kommt zurück. Nur für Eintritte und Hebungen,
+     nie für Farbe: eine Farbe, die überschwingt, sieht nach Fehler aus. */
+  --spring:340ms cubic-bezier(.34,1.28,.64,1);
+
+  /* ---- redesign tokens (08.10.2026, additive) ---------------------------
+     New names only; no value above changes, so AMANA (whose app.css shadows
+     the shared names) cannot drift. --fast, --slow and --spring keep their
+     literals and equal their parts below (check_system.py holds that). */
+  --dur-fast:120ms;--dur-slow:200ms;--dur-spring:340ms;
+  --ease-std:cubic-bezier(.2,0,.2,1);--ease-spring:cubic-bezier(.34,1.28,.64,1);
+  --loop:1.2s ease-in-out infinite;       /* pulse dots: assistant busy, live */
+  --backdrop:rgba(9,10,12,.45);           /* behind a modal, a palette, a drawer */
+  --r-pill:999px;
+  --s0:2px;                               /* the row gap of a rail */
+  /* Leopard DECK, the wordmark of DECK in the rail (18.10.2026, brand/ARCHITECTURE.md):
+     the tracking of its capitals and the size of its mark; no colour of its own. */
+  --deck-tracking:.06em;
+  --deck-mark:22px;
+  /* One z scale instead of literals: sticky heads, the top bar, popovers,
+     drawers, tooltips, modals. */
+  --z-sticky:10;--z-bar:60;--z-popover:70;--z-drawer:90;--z-tooltip:95;--z-modal:200;
+}
+
+/* LeopardCode.AI Dokumentstil: A4, nüchtern, kundentauglich.
+   Eine Quelle für Anleitungen, Berichte, Workpages und für die Rechnungen und
+   Angebote des accounting_agent.
+
+   Er steht auf der PAPIER-Familie aus tokens.css (`--p-*`), nicht auf den
+   Bildschirmtokens. Der Grund steht dort: Papier ist in beiden Schemata
+   Papier. Ein Druckstil, der `--text` und `--border` nimmt, wird dunkel,
+   sobald der Renderer dunkel denkt, und das fällt erst beim Kunden auf.
+
+   Bis zum 15.08.2026 stand hier etwas anderes. Der Befund, der das ausgelöst
+   hat, ist am Repo gemessen, nicht behauptet:
+
+   1. **Elf rohe Hex-Werte**, die von keinem Token wussten. Der Druck war eine
+      zweite Farbquelle, und eine Änderung an `tokens.css` ging an ihm vorbei.
+      Jetzt: keiner.
+   2. **Drei Radien für eine Aufgabe** (1mm am `kbd`, 1.2mm an der Kopfleiste
+      des Beispiels, 1.5mm an Karten und Bildern). Jetzt: zwei, benannt.
+   3. **Drei Bauarten für eine Botschaft.** `.ziel` war Rahmen plus Fläche,
+      `.hinweis` ein linker Balken, `.beispiel` ein Rahmen mit dunkler
+      Kopfleiste. Dreimal derselbe Gedanke, dreimal anders gebaut. Jetzt eine
+      Bauart, und die Farbe sagt, worum es geht.
+
+   Herkunft des Befunds: LeopardCode-Designsystem (Amana 2.0), Stand
+   16.08.2026. Jeder der drei Punkte wurde vor der Umstellung an dieser Datei
+   nachgezählt und stimmte. */
+
+@page { size: A4 portrait; margin: 14mm 13mm 12mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Zwei Radien, mehr braucht ein Blatt nicht: klein für ein Bedienelement im
+   Text, groß für alles, was ein Kasten ist. */
+:root { --r-klein: 1.2mm; --r-gross: 1.8mm; }
+
+body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+       font-size: 9.6pt; line-height: 1.42; color: var(--p-tinte); margin: 0;
+       background: var(--p-blatt); }
+
+a { color: var(--p-akzent); text-decoration: none; }
+
+header { border-bottom: 2.4pt solid var(--p-tinte); padding-bottom: 2.5mm;
+         margin-bottom: 4mm; }
+.kopf { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; }
+h1 { font-size: 15pt; margin: 0 0 1mm; letter-spacing: -.01em; }
+.unter { font-size: 8.6pt; color: var(--p-leise); }
+.meta { font-size: 7.8pt; color: var(--p-leise); text-align: right; line-height: 1.5;
+        white-space: nowrap; }
+
+h2 { font-size: 11pt; margin: 5mm 0 2mm; padding-bottom: 1mm;
+     border-bottom: .8pt solid var(--p-linie-strong); }
+h3 { font-size: 9.8pt; margin: 3mm 0 1.5mm; }
+p { margin: 1.6mm 0; }
+ol.schritte { margin: 2mm 0; padding-left: 5.5mm; }
+ol.schritte li { margin-bottom: 1.6mm; }
+ul { margin: 1.5mm 0; padding-left: 5mm; }
+li { margin-bottom: 1mm; }
+
+/* --- Merkkasten: EINE Bauart, drei Bedeutungen ----------------------------
+   Linker Balken in der Bedeutungsfarbe plus deren Tönung als Fläche. Wer
+   einen vierten Fall braucht, gibt ihm eine Farbe, keine neue Konstruktion.
+   Die Tönungen sind hier ausgerechnet und nicht per color-mix gemischt: im
+   Druck zählt, was auf dem Blatt landet, und eine gemischte Fläche über
+   einem weißen Blatt ist dieselbe Fläche wie die ausgerechnete. */
+.ziel, .hinweis, .beispiel {
+  border-left: 2.4pt solid var(--ton);
+  background: var(--ton-flaeche);
+  border-radius: 0 var(--r-gross) var(--r-gross) 0;
+  padding: 2.4mm 3mm;
+  margin: 2.5mm 0;
+  break-inside: avoid;
+}
+.ziel    { --ton: var(--p-gut);  --ton-flaeche: var(--p-gut-flaeche); }
+.hinweis { --ton: var(--p-warn); --ton-flaeche: var(--p-warn-flaeche); font-size: 9.2pt; }
+.beispiel{ --ton: var(--p-linie-strong); --ton-flaeche: var(--p-code); padding: 0; }
+
+.ziel b { color: var(--p-gut); }
+
+/* Der Kopierkasten behält seine Beschriftung, aber als Etikett statt als
+   dunkle Vollfläche: die kostet Toner und trägt keine Bedeutung. */
+.beispiel .bt { display: block; font-size: 7.6pt; font-weight: 600;
+                text-transform: uppercase; letter-spacing: .4pt;
+                color: var(--p-leise); padding: 1.8mm 3mm .6mm; }
+.beispiel .bi { padding: 0 3mm 2.2mm; font-family: Menlo, Consolas, monospace;
+                font-size: 8.6pt; white-space: pre-wrap; color: var(--p-tinte-2); }
+
+figure { margin: 3mm 0; break-inside: avoid; }
+figure img { max-width: 100%; max-height: 78mm; width: auto;
+             border: .8pt solid var(--p-linie-strong); border-radius: var(--r-gross); }
+figure.schmal img { max-width: 65%; }
+figcaption { font-size: 8pt; color: var(--p-leise); margin-top: 1mm; }
+
+table { border-collapse: collapse; width: 100%; margin: 2mm 0; break-inside: avoid; }
+th, td { border: .8pt solid var(--p-linie-strong); padding: 1.6mm 2.2mm;
+         font-size: 8.8pt; text-align: left; vertical-align: top;
+         color: var(--p-tinte-2); }
+th { background: var(--p-zeile); font-size: 8.2pt; font-weight: 600;
+     color: var(--p-tinte); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.leer { height: 9mm; }
+.fb th:nth-child(1) { width: 52mm; }
+.fb th:nth-child(2) { width: 22mm; }
+
+kbd { border: .8pt solid var(--p-linie-strong); border-radius: var(--r-klein);
+      padding: 0 1.2mm; font-family: inherit; font-size: 8.8pt;
+      background: var(--p-zeile); white-space: nowrap; }
+
+footer { margin-top: 5mm; padding-top: 2mm; border-top: .8pt solid var(--p-linie-strong);
+         font-size: 7.8pt; color: var(--p-leise); }
+
+/* Zweispaltige Kartenübersicht (für Berichte und Workpages) */
+.karten { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+.karte { border: .8pt solid var(--p-linie-strong); border-radius: var(--r-gross);
+         padding: 2.5mm 3mm; break-inside: avoid; }
+.karte h3 { margin: 0 0 1.8mm; }
+
+/* Wortmarke: "Code" im Akzent, sonst wie der umgebende Text
+   (BUILD_RULES 30). `font-weight: inherit` gehoert dazu, sonst wird aus der
+   Hervorhebung ein fettes Wort in einer sonst leisen Kopfzeile. */
+.lc-code { color: var(--p-akzent); font-weight: inherit; }
+
+figure img{width:100%} td,th{font-size:9pt}</style></head>
+<body>
+<header><div class="kopf">
+<div><h1>ChakraA: how well the app hears a singing bowl</h1><div class="unter">Run 2026-10-26_103325, chakra d7ddbb2, public variant</div></div>
+<div class="meta">Leopard<b class="lc-code">Code</b>.AI<br>Run 2026-10-26_103325<br>public</div>
+</div></header>
+<h2>Summary</h2>
+<ul><li><b>Strikes:</b> Flow shows the right chakra for 20 of 28 strikes (71 % [43, 81]), Strike for 21 of 28 (75 % [57, 81]); 2 recordings (YouTube only).</li><li><b>Latency</b> from the onset to the right colour, median: Flow 0.24 s [0.22, 0.25] (n = 8), Strike 0.11 s [0.05, 0.38] (n = 9).</li><li><b>The owner&#x27;s own rounds</b> (seven bowls struck root to crown, 6 recordings, shown here as numbers only): Flow 38 of 42, Strike 40 of 42 strikes right.</li><li><b>AI gate</b> (mn05, 79 Commons clips): sounds that should colour keep 62 % [49, 74] without AI, 49 % [36, 62] pretrained, 47 % [34, 60] with the trained head; sounds that should not colour drop from 25 % [15, 36] to 6 % [2, 12] and 4 % [1, 9] (n = 30 and 49).</li><li><b>Light in real sessions</b> (10 YouTube sessions): Flow 7.5 [4.9, 8.2] colour changes a minute, Strike 15.0 [11.4, 19.1]; recordings with more than three changes in any second: Flow 0, Strike 2.</li></ul>
+<p>Every number carries its n. Intervals are 95 % percentile bootstrap intervals over recordings (10000 draws, seed 26102026): recordings, not strikes or windows, are the independent unit.</p>
+<h2>Data</h2>
+<table><tr><th>Set</th><th>Recordings</th><th>Hours</th><th>What</th><th>Data list hash</th></tr><tr><td>Wikimedia Commons clips</td><td>79</td><td>0.82</td><td>free licences, 8 classes (fetch_clips.py)</td><td><code>b89c100897ac</code></td></tr><tr><td>YouTube videos</td><td>24</td><td>4.49</td><td>tune-ups, sessions on the body, concerts; not redistributed</td><td><code>5d0a01aee0ea</code></td></tr><tr><td>Own recordings</td><td>20</td><td>0.61</td><td>the owner&#x27;s rounds and sessions; private, counted only</td><td><code>957e45784bd5</code></td></tr></table>
+<p>Left out as duplicates: CPlC2404Ils (the same audio as u1KjQTAHSlo under another channel, shifted by 1.7 s). Commons clips are single recordings of one instrument, not sessions; the YouTube and own sessions are the nearest thing to a room.</p>
+<p><b>Data cleaning:</b> 17 entries of the Commons source lists are recordings of someone saying the word (&#x27;shaker&#x27;, &#x27;gong&#x27;, &#x27;maraca&#x27;: Lingua Libre and Wiktionary pronunciations), not the instrument; they are left out (fetch_clips.PRONUNCIATION). Up to 25 October 2026, 12 such files were counted among the benchmark&#x27;s 91 clips (11 as shakers, 1 as a gong).</p>
+<h2>Method</h2>
+<ul><li><b>Detector:</b> the app&#x27;s own C code (<code>chakra_detect.c</code> through <code>tests/analyse_wav.c</code>, built into the run folder), notes at A = 440 Hz, sensitivity 8. <b>Flow</b> locks a tone after 384 ms and switches after 1500 ms; <b>Strike</b> after 128 and 256 ms. Both have the strike path (spectral flux) that lets a new bowl take over a louder ringing one.</li><li><b>Onsets</b> (reference, independent of the detector&#x27;s decisions): peaks of the rectified log-magnitude spectral flux, 60 to 4000 Hz, 16 ms hops, corrected by 42 ms so a synthetic strike is found within 10 ms.</li><li><b>A strike is right</b> when its chakra is shown at some time from 0.1 s before the onset until the next strike or 3 s, whichever comes first. <b>First colour right</b>: the first colour that starts in that window is the right one. <b>Latency</b>: from the onset to the start of the right colour; a strike whose colour already showed (the same bowl again) counts for accuracy, not for latency.</li><li><b>Colour share:</b> the share of the sounding time (RMS above 3 % of the loudest 0.1 s) with any colour. The gate comparison uses gate_bench.py&#x27;s own time base: the first 30 s of each clip.</li><li><b>Light:</b> colour changes a minute (a new chakra, or colour to dark), the share of colours that stand under 3 s, and the most changes in any 1 s window against the photosensitivity guidance of at most three flashes a second (light_timeline.py).</li><li><b>AI gate:</b> EfficientAT mn05 on 2 s windows; pretrained = the best bowl-like AudioSet class beats the best other class; trained = a logistic head on the embedding, 5-fold by clip (a clip is never in its own training).</li></ul>
+<h3>Ground truth and how far to trust it</h3>
+<table><tr><th>Source</th><th>Chakra from</th><th>Strike time from</th><th>Reliability</th></tr><tr><td>Own rounds, hand-marked</td><td>a person marked each strike and its bowl (frames, or flux onsets checked against a contact sheet)</td><td>the flux onset found by the order alignment, when it lies within 1.6 s of the mark</td><td>chakra high; time high where the marks were checked (see validation)</td></tr><tr><td>Own rounds, derived</td><td>the seven bowls are struck root to crown (the owner&#x27;s set, tuned C3 to B3)</td><td>onsets aligned to that order by dynamic programming: each bowl takes the onset where its fundamental gained most new energy</td><td>chakra high; time medium, validated on the round with checked marks</td></tr><tr><td>YouTube, chapters (-ar9vsmFhJU)</td><td>the player&#x27;s chapter list, root to crown, &#x27;each bowl is struck 3 times&#x27;</td><td>the 3 strongest onsets of each chapter, at least 4 s apart</td><td>chakra high; time medium</td></tr><tr><td>YouTube, announced (u1KjQTAHSlo)</td><td>automatic captions: the seller names each bowl&#x27;s chakra and note</td><td>the strongest onset after the sentence and before the next one</td><td>chakra high; time medium</td></tr><tr><td>YouTube, crystal chapters (8Qhh2VF1Oz4)</td><td>chapter numbers read as chakra numbers, as the description says</td><td>none (bowls rung on): only the share of chapter time with the intended colour</td><td>medium</td></tr></table>
+<p><b>Validation of the derived strike times:</b> the order alignment, run without the marks, against the hand marks of the two marked rounds.</p>
+<table><tr><th>Round</th><th>Strikes</th><th>Median offset</th><th>Largest</th><th>Within 0.1 s</th><th>Marks from</th></tr><tr><td>own round 1</td><td>7</td><td>1.12 s</td><td>1.53 s</td><td>0 of 7</td><td>marks from 1 fps frames</td></tr><tr><td>own round 2</td><td>7</td><td>0.03 s</td><td>0.04 s</td><td>7 of 7</td><td>checked marks</td></tr></table>
+<p>Where the marks were checked against the flux, the alignment finds the same strikes within a few hundredths of a second; where they came from video frames at one a second, the frames lag the sound by up to 1.5 s, so those marks give the bowl but not the time.</p>
+<h2>Results</h2>
+<h3>Strikes</h3>
+<table><tr><th>Ground truth</th><th>Mode</th><th>Recordings</th><th>Strikes</th><th>Right</th><th>Accuracy [95 % CI]</th><th>First colour right</th><th>Latency, median [95 % CI]</th></tr><tr><td>YouTube, chapters (3 strikes a bowl)</td><td>Flow</td><td>1</td><td>21</td><td>17 of 21</td><td>81 %</td><td>81 %</td><td>0.22 s (n = 5)</td></tr><tr><td>YouTube, chapters (3 strikes a bowl)</td><td>Strike</td><td>1</td><td>21</td><td>17 of 21</td><td>81 %</td><td>76 %</td><td>0.05 s (n = 5)</td></tr><tr><td>YouTube, spoken announcements</td><td>Flow</td><td>1</td><td>7</td><td>3 of 7</td><td>43 %</td><td>43 %</td><td>0.25 s (n = 3)</td></tr><tr><td>YouTube, spoken announcements</td><td>Strike</td><td>1</td><td>7</td><td>4 of 7</td><td>57 %</td><td>43 %</td><td>0.38 s (n = 4)</td></tr><tr><td>Own rounds, hand-marked strikes</td><td>Flow</td><td>2</td><td>14</td><td>13 of 14</td><td>93 % [86, 100]</td><td>93 % [86, 100]</td><td>0.29 s [0.28, 0.33] (n = 13)</td></tr><tr><td>Own rounds, hand-marked strikes</td><td>Strike</td><td>2</td><td>14</td><td>13 of 14</td><td>93 % [86, 100]</td><td>93 % [86, 100]</td><td>0.01 s [0.01, 0.03] (n = 12)</td></tr><tr><td>Own rounds, derived strike times</td><td>Flow</td><td>4</td><td>28</td><td>25 of 28</td><td>89 % [86, 96]</td><td>89 % [86, 96]</td><td>0.30 s [0.29, 0.32] (n = 24)</td></tr><tr><td>Own rounds, derived strike times</td><td>Strike</td><td>4</td><td>28</td><td>27 of 28</td><td>96 % [89, 100]</td><td>93 % [86, 100]</td><td>0.02 s [0.01, 0.06] (n = 26)</td></tr></table>
+<p>Own rounds with derived times: 5 of 28 strikes are flagged uncertain (their bowl gained under 10 % of the new energy). Without them, Flow 91 % [83, 100], Strike 96 % [88, 100].</p>
+<figure><img src="figures/strikes.png" alt="" style="max-width:100%"><figcaption>Share of strikes that show the right chakra, Flow and Strike. Filled marks and thick lines: 95 % bootstrap interval over recordings; hollow marks and thin lines: a group of one recording, Wilson interval over its strikes (YouTube; the own rounds are in the table).</figcaption></figure>
+<figure><img src="figures/latency.png" alt="" style="max-width:100%"><figcaption>Each point is one strike whose colour changed to the right chakra; the bar is the median with its 95 % bootstrap interval over recordings.</figcaption></figure>
+<p><b>Time with the intended colour</b> in the YouTube tune-ups, mean over their chapters or announced bowls:</p>
+<table><tr><th>Video</th><th>Truth</th><th>Segments</th><th>Flow</th><th>Strike</th></tr><tr><td>-ar9vsmFhJU</td><td>chapters</td><td>7</td><td>80 %</td><td>81 %</td></tr><tr><td>u1KjQTAHSlo</td><td>announced</td><td>7</td><td>54 %</td><td>51 %</td></tr><tr><td>8Qhh2VF1Oz4</td><td>chapters sustained</td><td>5</td><td>87 %</td><td>73 %</td></tr></table>
+<p>-ar9vsmFhJU&#x27;s root bowl rings at G#3 (208 Hz): by note the app calls it Throat, so the root chapter scores near zero by design. The app&#x27;s answer is to learn your bowls (Settings, mapping &#x27;your bowls&#x27;).</p>
+<h3>Colour by sound class</h3>
+<table><tr><th>Sound</th><th>Recordings</th><th>Should colour</th><th>Flow, colour share</th><th>Strike, colour share</th></tr><tr><td>Singing bowl</td><td>10</td><td>yes</td><td>92 % [84, 97]</td><td>95 % [89, 99]</td></tr><tr><td>Bell</td><td>18</td><td>yes</td><td>43 % [30, 57]</td><td>85 % [77, 90]</td></tr><tr><td>Tuning fork</td><td>2</td><td>yes</td><td>91 % [87, 95]</td><td>95 % [93, 97]</td></tr><tr><td>Gong</td><td>11</td><td>no</td><td>56 % [35, 76]</td><td>93 % [88, 97]</td></tr><tr><td>Voice</td><td>5</td><td>no</td><td>46 % [24, 71]</td><td>81 % [68, 95]</td></tr><tr><td>Drum</td><td>20</td><td>no</td><td>15 % [3, 29]</td><td>46 % [28, 64]</td></tr><tr><td>Shaker</td><td>9</td><td>no</td><td>0 % [0, 0]</td><td>49 % [23, 73]</td></tr><tr><td>Rain stick</td><td>4</td><td>no</td><td>3 % [0, 8]</td><td>13 % [0, 38]</td></tr></table>
+<p>Mean share of the sounding time with any colour, whole recordings, 95 % bootstrap interval over recordings.</p>
+<h3>No AI, pretrained gate, trained head</h3>
+<table><tr><th>Sound</th><th>Recordings</th><th>Should colour</th><th>No AI</th><th>AI, pretrained</th><th>AI, trained head</th></tr><tr><td>Singing bowl</td><td>10</td><td>yes</td><td>91 % [83, 97]</td><td>84 % [77, 90]</td><td>84 % [78, 90]</td></tr><tr><td>Bell</td><td>18</td><td>yes</td><td>42 % [27, 57]</td><td>28 % [15, 42]</td><td>24 % [11, 39]</td></tr><tr><td>Tuning fork</td><td>2</td><td>yes</td><td>93 % [89, 96]</td><td>72 % [54, 89]</td><td>61 % [54, 68]</td></tr><tr><td>Gong</td><td>11</td><td>no</td><td>65 % [44, 83]</td><td>24 % [7, 44]</td><td>17 % [1, 35]</td></tr><tr><td>Voice</td><td>5</td><td>no</td><td>46 % [24, 71]</td><td>9 % [0, 23]</td><td>3 % [0, 9]</td></tr><tr><td>Drum</td><td>20</td><td>no</td><td>14 % [3, 28]</td><td>1 % [0, 2]</td><td>1 % [0, 2]</td></tr><tr><td>Shaker</td><td>9</td><td>no</td><td>0 % [0, 0]</td><td>0 % [0, 0]</td><td>0 % [0, 0]</td></tr><tr><td>Rain stick</td><td>4</td><td>no</td><td>0 % [0, 0]</td><td>0 % [0, 0]</td><td>0 % [0, 0]</td></tr></table>
+<p>gate_bench.py, mn05_as@2s, 79 clips; the trained head gets 85 % of windows right on clips it never saw; 275 ms a window on the Mac&#x27;s CPU.</p>
+<figure><img src="figures/gate.png" alt="" style="max-width:100%"><figcaption>Share of sounding time with a colour per class: no AI, the pretrained gate and the trained head.</figcaption></figure>
+<p>The owner&#x27;s recordings, segments a person checked (2 s labels), gate trained with them in the folds:</p>
+<table><tr><th>Segments</th><th>Recordings</th><th>No AI</th><th>AI, pretrained</th><th>AI, trained head</th></tr><tr><td>Own segments, bowl or bell (should colour)</td><td>10</td><td>69 % [53, 83]</td><td>41 % [23, 61]</td><td>63 % [47, 77]</td></tr><tr><td>Own segments, other sounds (should not)</td><td>3</td><td>10 % [0, 21]</td><td>0 % [0, 0]</td><td>7 % [0, 21]</td></tr></table>
+<h3>Flow against Strike</h3>
+<table><tr><th>Measure</th><th>Flow</th><th>Strike</th></tr><tr><td>Strikes right (YouTube)</td><td>71 % [43, 81]</td><td>75 % [57, 81]</td></tr><tr><td>First colour right</td><td>71 % [43, 81]</td><td>68 % [43, 76]</td></tr><tr><td>Latency, median</td><td>0.24 s [0.22, 0.25]</td><td>0.11 s [0.05, 0.38]</td></tr><tr><td>Singing bowls, colour share</td><td>92 % [84, 97]</td><td>95 % [89, 99]</td></tr><tr><td>Gongs, colour share</td><td>56 % [35, 76]</td><td>93 % [88, 97]</td></tr><tr><td>Sessions, changes a minute</td><td>7.5 [4.9, 8.2]</td><td>15.0 [11.4, 19.1]</td></tr><tr><td>Concerts, changes a minute</td><td>9.4 [5.1, 16.6]</td><td>16.8 [11.4, 24.3]</td></tr><tr><td>Sessions, colours under 3 s</td><td>32 % [20, 38]</td><td>56 % [48, 64]</td></tr></table>
+<h3>Light</h3>
+<table><tr><th>Recordings</th><th>Mode</th><th>n</th><th>Colours</th><th>Changes a minute, median</th><th>Colours under 3 s, median</th><th>Over 3 changes in 1 s</th><th>Most changes in 1 s</th></tr><tr><td>Commons, bowl-like sounds</td><td>Flow</td><td>30</td><td>55</td><td>5.5 [3.3, 9.9]</td><td>0 % [0, 25]</td><td>0 of 30</td><td>2</td></tr><tr><td>Commons, bowl-like sounds</td><td>Strike</td><td>30</td><td>142</td><td>11.8 [7.7, 17.6]</td><td>50 % [4, 58]</td><td>0 of 30</td><td>3</td></tr><tr><td>Commons, other sounds</td><td>Flow</td><td>49</td><td>120</td><td>0.0 [0.0, 2.7]</td><td>50 % [0, 85]</td><td>0 of 49</td><td>2</td></tr><tr><td>Commons, other sounds</td><td>Strike</td><td>49</td><td>467</td><td>14.3 [10.7, 23.3]</td><td>81 % [63, 100]</td><td>1 of 49</td><td>4</td></tr><tr><td>YouTube tune-ups</td><td>Flow</td><td>5</td><td>104</td><td>4.3 [1.5, 8.7]</td><td>32 % [14, 47]</td><td>0 of 5</td><td>2</td></tr><tr><td>YouTube tune-ups</td><td>Strike</td><td>5</td><td>270</td><td>12.7 [2.9, 14.7]</td><td>43 % [29, 71]</td><td>0 of 5</td><td>3</td></tr><tr><td>YouTube sessions on the body</td><td>Flow</td><td>10</td><td>361</td><td>7.5 [4.9, 8.2]</td><td>32 % [20, 38]</td><td>0 of 10</td><td>3</td></tr><tr><td>YouTube sessions on the body</td><td>Strike</td><td>10</td><td>1479</td><td>15.0 [11.4, 19.1]</td><td>56 % [48, 64]</td><td>2 of 10</td><td>4</td></tr><tr><td>YouTube concerts</td><td>Flow</td><td>9</td><td>622</td><td>9.4 [5.1, 16.6]</td><td>44 % [28, 47]</td><td>0 of 9</td><td>3</td></tr><tr><td>YouTube concerts</td><td>Strike</td><td>9</td><td>1630</td><td>16.8 [11.4, 24.3]</td><td>63 % [52, 70]</td><td>1 of 9</td><td>4</td></tr><tr><td>Own rounds, derived strike times</td><td>Flow</td><td>6</td><td>47</td><td>8.9 [7.0, 14.5]</td><td>83 % [73, 94]</td><td>0 of 6</td><td>2</td></tr><tr><td>Own rounds, derived strike times</td><td>Strike</td><td>6</td><td>82</td><td>14.5 [11.8, 25.4]</td><td>80 % [65, 88]</td><td>0 of 6</td><td>3</td></tr><tr><td>Own sessions</td><td>Flow</td><td>14</td><td>114</td><td>8.9 [2.4, 12.3]</td><td>40 % [22, 65]</td><td>0 of 14</td><td>3</td></tr><tr><td>Own sessions</td><td>Strike</td><td>14</td><td>243</td><td>13.8 [6.8, 26.0]</td><td>71 % [60, 82]</td><td>0 of 14</td><td>3</td></tr></table>
+<figure><img src="figures/light.png" alt="" style="max-width:100%"><figcaption>Colour changes a minute per group of recordings, Flow and Strike: median and 95 % bootstrap interval over recordings.</figcaption></figure>
+<figure><img src="figures/short.png" alt="" style="max-width:100%"><figcaption>Share of colours that stand under 3 s (median over recordings).</figcaption></figure>
+<h2>Limitations</h2>
+<ul><li><b>Small n.</b> The strike results rest on 2 recordings; with so few, a bootstrap interval over recordings is coarse and can collapse to a point when every recording scores the same. Wilson intervals over strikes are in report.json; they assume independent strikes, which they are not.</li><li><b>Commons clips are not sessions.</b> They are short recordings of one instrument, often close up; a room with several bowls, voices and a gong at once is harder. The YouTube sessions and concerts have no ground truth and serve only the light measures.</li><li><b>Labels by one person.</b> The own segment labels, the strike marks and the check of the derived times were made by one person; nobody measured agreement between two.</li><li><b>Teacher-labelled data.</b> Unchecked labels of the own videos were proposed by an AudioSet model (EfficientAT dymn04); the gate&#x27;s trained head uses only checked segments, but its pretrained teacher shaped what was checked. The YouTube chakra labels are what the players say their bowls are, not measured pitches.</li><li><b>One set of own bowls, one room.</b> All own rounds use the same seven bowls; another set, mallet or room may behave differently.</li><li><b>Latency resolution.</b> The detector prints its colour changes to 0.1 s, and the reference onset is the peak of the spectral flux, which for a soft felt mallet comes some tens of milliseconds after the attack begins. Latencies are good to about 0.1 s; a Strike latency near zero means &#x27;within a hop or two of the flux peak&#x27;, not &#x27;before the sound&#x27;.</li><li><b>Not the board.</b> The detector runs on the Mac from audio files; the ESP32-S31&#x27;s microphone, its gain and its timing are not measured here, and the lamps add their own delay.</li></ul>
+<h2>Reproduce</h2>
+<ul><li>chakra (ChakraA) commit <code>d7ddbb2537bb</code> (Evaluation pipeline: stages from data to a scientific report, reproducible), 1 uncommitted paths at the start (untracked only)</li><li>chakrav commit <code>78bfb56b88b0</code></li><li>stages continued later (--run latest --only report --force, --run latest --only report --force, --run latest --only report --force), last at chakra commit <code>9a35d3f92d27</code></li><li>config hash <code>c473ec5e2c85</code>; detector sources hash <code>4917f4824e88</code>; data hash <code>7b96ad157000</code></li><li>tools: Python 3.14.9, numpy 2.5.3, torch not in the pipeline interpreter (the gate stage runs in run.python), ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers</li><li>command: <code>tools/bench/pipeline.py</code> (stages fetch, own, detect, strikes, gate, light, report); <code>--run latest --from report --force</code> redraws only the report.</li></ul>
+<h2>Sources</h2>
+<p>YouTube (watched for evaluation only, nothing redistributed): <a href="https://www.youtube.com/watch?v=-ar9vsmFhJU">-ar9vsmFhJU</a> (templesounds); <a href="https://www.youtube.com/watch?v=u1KjQTAHSlo">u1KjQTAHSlo</a> (RANA SINGING BOWL CENTRE); <a href="https://www.youtube.com/watch?v=ePKXtFLYnUs">ePKXtFLYnUs</a> (templesounds); <a href="https://www.youtube.com/watch?v=8Qhh2VF1Oz4">8Qhh2VF1Oz4</a> (templesounds); <a href="https://www.youtube.com/watch?v=_RijJiX5rng">_RijJiX5rng</a> (templesounds); <a href="https://www.youtube.com/watch?v=rVbdnUhjQhM">rVbdnUhjQhM</a>; <a href="https://www.youtube.com/watch?v=U4ximZISXWo">U4ximZISXWo</a>; <a href="https://www.youtube.com/watch?v=l1026mXyQoI">l1026mXyQoI</a>; <a href="https://www.youtube.com/watch?v=PVNlmgsTbl0">PVNlmgsTbl0</a>; <a href="https://www.youtube.com/watch?v=HMClRBBC6iY">HMClRBBC6iY</a>; <a href="https://www.youtube.com/watch?v=Tu3fBhpCusM">Tu3fBhpCusM</a>; <a href="https://www.youtube.com/watch?v=MDh00cYlmGk">MDh00cYlmGk</a>; <a href="https://www.youtube.com/watch?v=WG9WGk55PG8">WG9WGk55PG8</a>; <a href="https://www.youtube.com/watch?v=eXxitYpgNF0">eXxitYpgNF0</a>; <a href="https://www.youtube.com/watch?v=IWPwzGgTmhc">IWPwzGgTmhc</a>; <a href="https://www.youtube.com/watch?v=BJKqpdvGiGc">BJKqpdvGiGc</a>; <a href="https://www.youtube.com/watch?v=vzMMYYI0K2k">vzMMYYI0K2k</a>; <a href="https://www.youtube.com/watch?v=VjJrvQCsc7o">VjJrvQCsc7o</a>; <a href="https://www.youtube.com/watch?v=tB1fvqGagFM">tB1fvqGagFM</a>; <a href="https://www.youtube.com/watch?v=oh0FUveHOBI">oh0FUveHOBI</a>; <a href="https://www.youtube.com/watch?v=chGb_m3wdZo">chGb_m3wdZo</a>; <a href="https://www.youtube.com/watch?v=pqEG48dS6pw">pqEG48dS6pw</a>; <a href="https://www.youtube.com/watch?v=0sM7ggc3geU">0sM7ggc3geU</a>; <a href="https://www.youtube.com/watch?v=5EalbAG0lP8">5EalbAG0lP8</a>.</p>
+<p>Wikimedia Commons: 79 clips under free licences, listed with title, page, licence and author in commons_sources.csv beside this report.</p>
+<h3>Per recording</h3>
+<table><tr><th>Recording</th><th>Mode</th><th>Right</th><th>Strikes in order (+ right, x wrong)</th></tr><tr><td>-ar9vsmFhJU</td><td>Flow</td><td>17 of 21</td><td>xRoot xRoot xRoot +Sacr +Sacr +Sacr xSola +Sola +Sola +Hear +Hear +Hear +Thro +Thro +Thro +Thir +Thir +Thir +Crow +Crow +Crow</td></tr><tr><td>-ar9vsmFhJU</td><td>Strike</td><td>17 of 21</td><td>xRoot xRoot xRoot +Sacr +Sacr +Sacr xSola +Sola +Sola +Hear +Hear +Hear +Thro +Thro +Thro +Thir +Thir +Thir +Crow +Crow +Crow</td></tr><tr><td>u1KjQTAHSlo</td><td>Flow</td><td>3 of 7</td><td>+Crow +Thir xThro xHear xSola +Sacr xRoot</td></tr><tr><td>u1KjQTAHSlo</td><td>Strike</td><td>4 of 7</td><td>+Crow +Thir xThro +Hear +Sola xSacr xRoot</td></tr></table>
+<footer>Leopard<b class="lc-code">Code</b>.AI · Dr.-Ing. Alexander Brunker</footer>
+</body></html>

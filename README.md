@@ -58,9 +58,9 @@ sibling that tries what a camera and bigger models can add. (ChakraA: the audio 
   and a second head that tells gongs from other sounds (`tools/bench/gong_head.py`; it finds 45 % of the
   Commons gongs and 33 % of our own, a gong it misses gets the small kick); on the board it is meant for the ESP32-S31's AI
   instructions through ESP-DL (mn05 at 8-bit weights and 16-bit activations, about 1.9 MB, estimated 30 to
-  60 ms per second of audio, to be measured when the board is here). On 91 recordings (26 October 2026,
-  table below): gongs coloured the room 60 % of the time they sounded without the gate and 21 % with it,
-  voices 46 % and 4 %, while singing bowls kept their colour 83 % of the time (91 % without).
+  60 ms per second of audio, to be measured when the board is here). On 79 Commons recordings (26 October 2026,
+  table below): gongs coloured the room 65 % of the time they sounded without the gate and 17 % with it,
+  voices 46 % and 3 %, while singing bowls kept their colour 84 % of the time (91 % without).
   Nothing leaves the device: no camera, no cloud, no account. Without a gate running the setting changes
   nothing, so the room never stays dark because of it.
 - **Flow or Strike.** Flow (default) waits 0.4 s for a steady tone and fades softly, made for a journey.
@@ -83,43 +83,69 @@ chakra was shown. Results on 26 October 2026, notes at A = 440 Hz, Flow unless S
 
 | Recording | Result |
 |---|---|
-| 7 bowls, C3 to B3, struck one after another with felt about every 1.2 s, the root bowl about three times louder (own recordings: 2 with marked strikes, 4 more rounds) | every strike shows its chakra, in order: 7 of 7 and 5 of 5, in Flow and in Strike; the 4 rounds 6, 6, 6 and 7 of 7 in Flow, 7, 7, 6 and 7 in Strike. Before the strike path the ringing root bowl masked them: Flow 1 of 7 and 1 of 5 (Root alone, for up to 50 s), Strike 2 of 7 and 2 of 5 |
+| 7 bowls, C3 to B3, struck one after another with felt about every 1.2 s, the root bowl about three times louder (own recordings: 2 with marked strikes, 4 more rounds) | the marked rounds 6 of 7 and 7 of 7, in Flow and in Strike (the first one's crown never shows); the 4 rounds 6, 6, 6 and 7 of 7 in Flow, 7, 7, 6 and 7 in Strike: 38 and 40 of 42 strikes. Before the strike path the ringing root bowl masked them (Root alone, for up to 50 s) |
 | 10 single singing bowls with a Japanese rin, 2 tuning forks | 10 of 12 lock one chakra and stay; the main chakra shows 67 to 99 % of the time (as before) |
-| a 7-bowl chakra tune-up video, root to crown (24 October) | 6 of 7 by note; its "root" bowl rings at G#3 (210 Hz), so learn your bowls |
+| a 7-bowl chakra tune-up video, root to crown, each bowl struck 3 times (-ar9vsmFhJU, its chapters give the bowls) | 17 of 21 strikes in Flow and in Strike; the 3 root strikes fail: its "root" bowl rings at G#3 (208 Hz), so learn your bowls |
+| a bowl seller naming each bowl, crown to root (u1KjQTAHSlo, from its captions) | 3 of 7 in Flow, 4 of 7 in Strike: some bowls' upper partials read as another chakra |
 | handpan, kalimba, koshi chimes, melodies (24 October) | Flow: 3 to 10 colour changes per piece; Strike follows every note (up to 116) |
 | 44 drums, shakers and rain sticks | 40 of 44 mostly without colour (at most 27 % of the time), as before |
 | 12 gongs | a clear gong locks; a complex gong wash still wanders between chakras. Flow colours 51 % of the time (49 % before), 5.0 colour changes a recording (4.8); Strike is calmer, 18 changes (22) |
 
-From the strike to the colour on the screen: 0.38 s in Flow, 0.13 s in Strike. A bowl struck over a louder
-one that still rings: 0.39 s in Flow, 0.09 s in Strike (mean of 10 such strikes in the marked recordings,
-0.21 to 0.68 s and 0 to 0.25 s; the marks are good to about 0.1 s). A lamp adds its own path: Hue on the
-local network is fast, a Wi-Fi bulb through a cloud integration can add a second or two.
+From the strike to the colour on the screen, median over the strikes whose colour changed (8 recordings,
+own rounds and tune-ups): 0.29 s in Flow (n = 45, 95 % interval 0.28 to 0.32 s), 0.03 s in Strike (n = 47,
+0.02 to 0.09 s), good to about 0.1 s (the detector prints tenths of a second; the reference is the flux peak
+of the strike). A lamp adds its own path: Hue on the local network is fast, a Wi-Fi bulb through a cloud
+integration can add a second or two.
 
-**With and without the local AI sound gate** (`tools/bench/gate_bench.py`, 91 Commons recordings, 25 October
-2026): the share of each recording's sounding time that has a colour. mn05 on 2 s windows, the model meant
-for the board; "trained" is a small head on its embedding, tested on recordings it never saw (5-fold by
-recording, 84 % of windows right). Measured again on 26 October with the strike path: only the gongs moved
-(No AI 60 %, 57 % before: two recordings where a gong struck again brings a new clear tone over the
-ringing one), the AI columns stayed the same.
+**With and without the local AI sound gate** (`tools/bench/gate_bench.py` in the evaluation pipeline, 79
+Commons recordings, 26 October 2026): the share of each recording's sounding time that has a colour, mean
+with its 95 % bootstrap interval over recordings. mn05 on 2 s windows, the model meant for the board;
+"trained" is a small head on its embedding, tested on recordings it never saw (5-fold by recording, 85 % of
+windows right). 12 of the 91 clips of 25 October were no instruments but someone saying the word (Lingua
+Libre and Wiktionary pronunciations of "shaker" and "gong"); they are left out now.
 
 | Sound | Recordings | Should colour | No AI | AI, pretrained | AI, trained |
 |---|---|---|---|---|---|
-| singing bowl | 10 | yes | 91 % | 84 % | 83 % |
-| bell | 18 | yes | 42 % | 28 % | 24 % |
-| tuning fork | 2 | yes | 93 % | 72 % | 56 % |
-| gong | 12 | no | 60 % | 22 % | 21 % |
-| voice | 5 | no | 46 % | 9 % | 4 % |
-| drum | 20 | no | 14 % | 1 % | 1 % |
-| shaker, rain stick | 24 | no | 0 % | 0 % | 0 % |
+| singing bowl | 10 | yes | 91 % [83, 97] | 84 % [77, 90] | 84 % [78, 90] |
+| bell | 18 | yes | 42 % [27, 57] | 28 % [15, 42] | 24 % [11, 39] |
+| tuning fork | 2 | yes | 93 % [89, 96] | 72 % [54, 89] | 61 % [54, 68] |
+| gong | 11 | no | 65 % [44, 83] | 24 % [7, 44] | 17 % [1, 35] |
+| voice | 5 | no | 46 % [24, 71] | 9 % [0, 23] | 3 % [0, 9] |
+| drum | 20 | no | 14 % [3, 28] | 1 % [0, 2] | 1 % [0, 2] |
+| shaker, rain stick | 13 | no | 0 % | 0 % | 0 % |
 
 The gate does what a sound healing room needs from it, gongs, drums and voices mostly stop painting the
 room, at a price: bells lose colour too, and bowls lose a little. Across mn04, mn05 and dymn04 with 0.5, 1 and 2 s
-windows the picture is the same, the numbers spread: bowls keep 72 to 87 %, gongs keep 12 to 34 %, voices
+windows the picture is the same (25 October, 91 clips), the numbers spread: bowls keep 72 to 87 %, gongs keep 12 to 34 %, voices
 1 to 20 %; mn04 on 2 s with the trained head drops gongs furthest (12 %) at the same bowl share (84 %).
 22 to 26 ms a window on the Mac's CPU. Two tuning forks are too few to read much into.
 
 The recordings came from Wikimedia Commons (free licences) and were used for testing only; none ships with
 this repository.
+
+## Evaluation pipeline
+
+`tools/bench/pipeline.py` makes every number above from one command, as separate stages: fetch the Commons
+clips, export and label the own videos, run the detector over every recording in Flow and Strike, score it
+against known strikes, run the AI gate bench, measure the light, and write the report. Each run gets its own
+folder with a copy of the config, the commits of both chakra repositories and hashes of the code and the data
+lists, so a result can be traced and repeated. The public report of the last run, with sample sizes, 95 %
+intervals, the definitions and the limitations: [docs/evaluation/report.md](docs/evaluation/report.md).
+
+| Measure (26 October 2026) | Flow | Strike |
+|---|---|---|
+| Strikes that show the right chakra (8 recordings, 70 strikes) | 83 % [71, 93] | 87 % [79, 96] |
+| Of these, public tune-ups only (2 videos, 28 strikes) | 71 % [43, 81] | 75 % [57, 81] |
+| From the onset to the right colour, median | 0.29 s (n = 45) | 0.03 s (n = 47) |
+| Colour changes a minute in sessions on the body (10 videos) | 7.5 [4.9, 8.2] | 15.0 [11.4, 19.1] |
+| Colours that stand under 3 s, same sessions | 32 % [20, 38] | 56 % [48, 64] |
+| Sessions with more than three changes in a second | 0 of 10 | 2 of 10 |
+
+Where the strike times come from: the owner's hand marks, the known order root to crown aligned to the
+spectral flux (checked against the marks: within 0.04 s where the marks were checked), and for public
+videos their own chapter lists and spoken captions (`tools/bench/strike_truth.json`). Small n, one set of
+own bowls, one person's labels: read the limitations in the report. Run it:
+`tools/bench/pipeline.py --dry-run`, then without; details in [tools/bench/README.md](tools/bench/README.md).
 
 ## Try it without the board
 
@@ -176,6 +202,7 @@ the environment and writes them straight to the board.
 | Simulator side and feeder | `components/app_chakra/host/platform_pc.c`, `tools/chakra_feed.py` |
 | Tests | `tests/test_detect.c`, `tests/test_light.c`, `tests/analyse_wav.c` |
 | How the light would change over a recording: changes a minute, holds, flicker, dark gaps | `tools/light_timeline.py` |
+| Evaluation: data, detector, strikes, AI gate, light, report, one folder per run | `tools/bench/pipeline.py`, `tools/bench/README.md` |
 
 The detection is plain C with no dependencies, so the board, the simulator and the tests run the same code.
 This app replaces four generations of an ESPHome firmware for the ESP32-S3-BOX-3 (2025 to 2026): their

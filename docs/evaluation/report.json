@@ -1,0 +1,1703 @@
+{
+ "variant": "public",
+ "run": "2026-10-26_103325",
+ "definitions": {},
+ "results": {
+  "strikes": {
+   "own/marked": {
+    "flow": {
+     "recordings": 2,
+     "strikes": 14,
+     "right": 13,
+     "accuracy": {
+      "value": 0.9285714285714286,
+      "low": 0.8571428571428571,
+      "high": 1.0
+     },
+     "accuracy_wilson": {
+      "low": 0.6853073044604219,
+      "high": 0.9872781138877085
+     },
+     "first_colour_right": {
+      "value": 0.9285714285714286,
+      "low": 0.8571428571428571,
+      "high": 1.0
+     },
+     "latency_median_s": {
+      "value": 0.29,
+      "low": 0.278,
+      "high": 0.33
+     },
+     "latency_n": 13,
+     "latency_mean_s": 0.3383076923076923,
+     "latency_p90_s": 0.48040000000000005,
+     "already_shown": 0
+    },
+    "strike": {
+     "recordings": 2,
+     "strikes": 14,
+     "right": 13,
+     "accuracy": {
+      "value": 0.9285714285714286,
+      "low": 0.8571428571428571,
+      "high": 1.0
+     },
+     "accuracy_wilson": {
+      "low": 0.6853073044604219,
+      "high": 0.9872781138877085
+     },
+     "first_colour_right": {
+      "value": 0.9285714285714286,
+      "low": 0.8571428571428571,
+      "high": 1.0
+     },
+     "latency_median_s": {
+      "value": 0.015,
+      "low": 0.015,
+      "high": 0.027
+     },
+     "latency_n": 12,
+     "latency_mean_s": 0.06,
+     "latency_p90_s": 0.17679999999999998,
+     "already_shown": 1
+    }
+   },
+   "own/round": {
+    "flow": {
+     "recordings": 4,
+     "strikes": 28,
+     "right": 25,
+     "accuracy": {
+      "value": 0.8928571428571429,
+      "low": 0.8571428571428571,
+      "high": 0.9642857142857143
+     },
+     "accuracy_wilson": {
+      "low": 0.7280377463234293,
+      "high": 0.9628823079452005
+     },
+     "first_colour_right": {
+      "value": 0.8928571428571429,
+      "low": 0.8571428571428571,
+      "high": 0.9642857142857143
+     },
+     "latency_median_s": {
+      "value": 0.296,
+      "low": 0.29,
+      "high": 0.322
+     },
+     "latency_n": 24,
+     "latency_mean_s": 0.3475,
+     "latency_p90_s": 0.4512,
+     "already_shown": 1,
+     "confident_only": {
+      "strikes": 23,
+      "accuracy": {
+       "value": 0.9130434782608695,
+       "low": 0.8333333333333334,
+       "high": 1.0
+      }
+     }
+    },
+    "strike": {
+     "recordings": 4,
+     "strikes": 28,
+     "right": 27,
+     "accuracy": {
+      "value": 0.9642857142857143,
+      "low": 0.8928571428571429,
+      "high": 1.0
+     },
+     "accuracy_wilson": {
+      "low": 0.8228742388150135,
+      "high": 0.9936676435024582
+     },
+     "first_colour_right": {
+      "value": 0.9285714285714286,
+      "low": 0.8571428571428571,
+      "high": 1.0
+     },
+     "latency_median_s": {
+      "value": 0.024,
+      "low": 0.005,
+      "high": 0.062
+     },
+     "latency_n": 26,
+     "latency_mean_s": 0.05876923076923078,
+     "latency_p90_s": 0.172,
+     "already_shown": 1,
+     "confident_only": {
+      "strikes": 23,
+      "accuracy": {
+       "value": 0.9565217391304348,
+       "low": 0.8846153846153846,
+       "high": 1.0
+      }
+     }
+    }
+   },
+   "youtube/chapters": {
+    "flow": {
+     "recordings": 1,
+     "strikes": 21,
+     "right": 17,
+     "accuracy": {
+      "value": 0.8095238095238095,
+      "low": null,
+      "high": null
+     },
+     "accuracy_wilson": {
+      "low": 0.599990134607267,
+      "high": 0.9233255938482269
+     },
+     "first_colour_right": {
+      "value": 0.8095238095238095,
+      "low": null,
+      "high": null
+     },
+     "latency_median_s": {
+      "value": 0.222,
+      "low": null,
+      "high": null
+     },
+     "latency_n": 5,
+     "latency_mean_s": 0.4404,
+     "latency_p90_s": 0.9220000000000002,
+     "already_shown": 12
+    },
+    "strike": {
+     "recordings": 1,
+     "strikes": 21,
+     "right": 17,
+     "accuracy": {
+      "value": 0.8095238095238095,
+      "low": null,
+      "high": null
+     },
+     "accuracy_wilson": {
+      "low": 0.599990134607267,
+      "high": 0.9233255938482269
+     },
+     "first_colour_right": {
+      "value": 0.7619047619047619,
+      "low": null,
+      "high": null
+     },
+     "latency_median_s": {
+      "value": 0.046,
+      "low": null,
+      "high": null
+     },
+     "latency_n": 5,
+     "latency_mean_s": 0.0508,
+     "latency_p90_s": 0.1076,
+     "already_shown": 12
+    }
+   },
+   "youtube/announced": {
+    "flow": {
+     "recordings": 1,
+     "strikes": 7,
+     "right": 3,
+     "accuracy": {
+      "value": 0.42857142857142855,
+      "low": null,
+      "high": null
+     },
+     "accuracy_wilson": {
+      "low": 0.15821692226262685,
+      "high": 0.7495457695909742
+     },
+     "first_colour_right": {
+      "value": 0.42857142857142855,
+      "low": null,
+      "high": null
+     },
+     "latency_median_s": {
+      "value": 0.254,
+      "low": null,
+      "high": null
+     },
+     "latency_n": 3,
+     "latency_mean_s": 0.5766666666666667,
+     "latency_p90_s": 1.0444,
+     "already_shown": 0
+    },
+    "strike": {
+     "recordings": 1,
+     "strikes": 7,
+     "right": 4,
+     "accuracy": {
+      "value": 0.5714285714285714,
+      "low": null,
+      "high": null
+     },
+     "accuracy_wilson": {
+      "low": 0.2504542304090258,
+      "high": 0.8417830777373732
+     },
+     "first_colour_right": {
+      "value": 0.42857142857142855,
+      "low": null,
+      "high": null
+     },
+     "latency_median_s": {
+      "value": 0.38,
+      "low": null,
+      "high": null
+     },
+     "latency_n": 4,
+     "latency_mean_s": 0.556,
+     "latency_p90_s": 1.1356000000000002,
+     "already_shown": 0
+    }
+   },
+   "all": {
+    "flow": {
+     "recordings": 8,
+     "strikes": 70,
+     "right": 58,
+     "accuracy": {
+      "value": 0.8285714285714286,
+      "low": 0.7142857142857143,
+      "high": 0.9285714285714286
+     },
+     "accuracy_wilson": {
+      "low": 0.7238313393501764,
+      "high": 0.8991237428798945
+     },
+     "first_colour_right": {
+      "value": 0.8285714285714286,
+      "low": 0.7142857142857143,
+      "high": 0.9285714285714286
+     },
+     "latency_median_s": {
+      "value": 0.29,
+      "low": 0.278,
+      "high": 0.322
+     },
+     "latency_n": 45,
+     "latency_mean_s": 0.37044444444444447,
+     "latency_p90_s": 0.5004,
+     "already_shown": 13
+    },
+    "strike": {
+     "recordings": 8,
+     "strikes": 70,
+     "right": 61,
+     "accuracy": {
+      "value": 0.8714285714285714,
+      "low": 0.7857142857142857,
+      "high": 0.9642857142857143
+     },
+     "accuracy_wilson": {
+      "low": 0.7733503128681549,
+      "high": 0.9308597800875773
+     },
+     "first_colour_right": {
+      "value": 0.8285714285714286,
+      "low": 0.7142857142857143,
+      "high": 0.9464285714285714
+     },
+     "latency_median_s": {
+      "value": 0.03,
+      "low": 0.022,
+      "high": 0.086
+     },
+     "latency_n": 47,
+     "latency_mean_s": 0.10055319148936172,
+     "latency_p90_s": 0.18999999999999997,
+     "already_shown": 14
+    }
+   },
+   "all_public": {
+    "flow": {
+     "recordings": 2,
+     "strikes": 28,
+     "right": 20,
+     "accuracy": {
+      "value": 0.7142857142857143,
+      "low": 0.42857142857142855,
+      "high": 0.8095238095238095
+     },
+     "accuracy_wilson": {
+      "low": 0.529403642629825,
+      "high": 0.8474618415167003
+     },
+     "first_colour_right": {
+      "value": 0.7142857142857143,
+      "low": 0.42857142857142855,
+      "high": 0.8095238095238095
+     },
+     "latency_median_s": {
+      "value": 0.244,
+      "low": 0.222,
+      "high": 0.254
+     },
+     "latency_n": 8,
+     "latency_mean_s": 0.4915,
+     "latency_p90_s": 1.2732,
+     "already_shown": 12
+    },
+    "strike": {
+     "recordings": 2,
+     "strikes": 28,
+     "right": 21,
+     "accuracy": {
+      "value": 0.75,
+      "low": 0.5714285714285714,
+      "high": 0.8095238095238095
+     },
+     "accuracy_wilson": {
+      "low": 0.566439747592954,
+      "high": 0.8732366505779922
+     },
+     "first_colour_right": {
+      "value": 0.6785714285714286,
+      "low": 0.42857142857142855,
+      "high": 0.7619047619047619
+     },
+     "latency_median_s": {
+      "value": 0.11,
+      "low": 0.046,
+      "high": 0.38
+     },
+     "latency_n": 9,
+     "latency_mean_s": 0.2753333333333334,
+     "latency_p90_s": 0.7716000000000002,
+     "already_shown": 12
+    }
+   }
+  },
+  "truth_validation": [
+   {
+    "recording": "own recording",
+    "strikes": 7,
+    "median_abs_s": 1.122,
+    "max_abs_s": 1.53,
+    "within_0_1_s": 0,
+    "marks_from": "frames at 1 per second, 8 to 24 s"
+   },
+   {
+    "recording": "own recording",
+    "strikes": 7,
+    "median_abs_s": 0.03,
+    "max_abs_s": 0.042,
+    "within_0_1_s": 7,
+    "marks_from": "spectral flux onsets with the new peaks after each, order against the contact sheet"
+   }
+  ],
+  "youtube_segments": {
+   "youtube/-ar9vsmFhJU": {
+    "flow": {
+     "segments": 7,
+     "mean_share": 0.8042714285714286,
+     "per_segment": [
+      0.0,
+      0.9408,
+      0.9664,
+      0.9474,
+      0.9569,
+      0.8508,
+      0.9676
+     ]
+    },
+    "strike": {
+     "segments": 7,
+     "mean_share": 0.8058285714285714,
+     "per_segment": [
+      0.0,
+      0.9087,
+      0.9691,
+      0.9608,
+      0.9508,
+      0.882,
+      0.9694
+     ]
+    }
+   },
+   "youtube/u1KjQTAHSlo": {
+    "flow": {
+     "segments": 7,
+     "mean_share": 0.5435571428571428,
+     "per_segment": [
+      0.8481,
+      0.7903,
+      0.4508,
+      0.4335,
+      0.3924,
+      0.7903,
+      0.0995
+     ]
+    },
+    "strike": {
+     "segments": 7,
+     "mean_share": 0.5140714285714285,
+     "per_segment": [
+      0.4861,
+      0.7608,
+      0.4016,
+      0.7473,
+      0.7089,
+      0.2948,
+      0.199
+     ]
+    }
+   },
+   "youtube/8Qhh2VF1Oz4": {
+    "flow": {
+     "segments": 5,
+     "mean_share": 0.86828,
+     "per_segment": [
+      0.9795,
+      0.9824,
+      0.8279,
+      0.8948,
+      0.6568
+     ]
+    },
+    "strike": {
+     "segments": 5,
+     "mean_share": 0.7251799999999999,
+     "per_segment": [
+      0.768,
+      0.8456,
+      0.5234,
+      0.8429,
+      0.646
+     ]
+    }
+   }
+  },
+  "classes": {
+   "singing_bowl": {
+    "recordings": 10,
+    "should_colour": true,
+    "flow": {
+     "value": 0.91754,
+     "low": 0.8432637500000001,
+     "high": 0.97271025
+    },
+    "strike": {
+     "value": 0.9454800000000001,
+     "low": 0.8863095,
+     "high": 0.98891
+    }
+   },
+   "bell": {
+    "recordings": 18,
+    "should_colour": true,
+    "flow": {
+     "value": 0.43475555555555556,
+     "low": 0.29624736111111105,
+     "high": 0.5721961111111111
+    },
+    "strike": {
+     "value": 0.8450055555555557,
+     "low": 0.7748941666666668,
+     "high": 0.902006388888889
+    }
+   },
+   "tuning_fork": {
+    "recordings": 2,
+    "should_colour": true,
+    "flow": {
+     "value": 0.90905,
+     "low": 0.8696,
+     "high": 0.9485
+    },
+    "strike": {
+     "value": 0.95195,
+     "low": 0.9348,
+     "high": 0.9691
+    }
+   },
+   "gong": {
+    "recordings": 11,
+    "should_colour": false,
+    "flow": {
+     "value": 0.5611818181818181,
+     "low": 0.3519327272727273,
+     "high": 0.7629129545454545
+    },
+    "strike": {
+     "value": 0.9348636363636363,
+     "low": 0.8841804545454545,
+     "high": 0.9712004545454545
+    }
+   },
+   "voice": {
+    "recordings": 5,
+    "should_colour": false,
+    "flow": {
+     "value": 0.4582,
+     "low": 0.2369840000000003,
+     "high": 0.7087549999999995
+    },
+    "strike": {
+     "value": 0.8141200000000002,
+     "low": 0.6814600000000001,
+     "high": 0.9467800000000001
+    }
+   },
+   "drum": {
+    "recordings": 20,
+    "should_colour": false,
+    "flow": {
+     "value": 0.15065,
+     "low": 0.033284999999999995,
+     "high": 0.293910625
+    },
+    "strike": {
+     "value": 0.4608650000000001,
+     "low": 0.2825450000000001,
+     "high": 0.63606225
+    }
+   },
+   "shaker": {
+    "recordings": 9,
+    "should_colour": false,
+    "flow": {
+     "value": 0.0,
+     "low": 0.0,
+     "high": 0.0
+    },
+    "strike": {
+     "value": 0.4869888888888888,
+     "low": 0.23484444444444444,
+     "high": 0.7348444444444444
+    }
+   },
+   "rainstick": {
+    "recordings": 4,
+    "should_colour": false,
+    "flow": {
+     "value": 0.0252,
+     "low": 0.0,
+     "high": 0.0756
+    },
+    "strike": {
+     "value": 0.1267,
+     "low": 0.0,
+     "high": 0.3801
+    }
+   }
+  },
+  "gate": {
+   "model": "mn05_as@2s",
+   "ms_per_window": 275.20512498449534,
+   "window_accuracy_trained": 0.8518815052041633,
+   "clips": 79,
+   "classes": {
+    "singing_bowl": {
+     "recordings": 10,
+     "no_ai": {
+      "value": 0.9092178929649325,
+      "low": 0.8266608167320836,
+      "high": 0.9718046672517381
+     },
+     "ai_pretrained": {
+      "value": 0.8383384754850889,
+      "low": 0.7715971258635066,
+      "high": 0.8977711158940144
+     },
+     "ai_trained": {
+      "value": 0.8444360364606986,
+      "low": 0.7773703965430026,
+      "high": 0.9024382620228266
+     }
+    },
+    "bell": {
+     "recordings": 18,
+     "no_ai": {
+      "value": 0.42005120550100605,
+      "low": 0.2745084846472379,
+      "high": 0.5654082034071852
+     },
+     "ai_pretrained": {
+      "value": 0.2772326912420795,
+      "low": 0.14688794485938064,
+      "high": 0.4169854504641624
+     },
+     "ai_trained": {
+      "value": 0.24480755065030108,
+      "low": 0.10991633800049079,
+      "high": 0.3941048422998574
+     }
+    },
+    "tuning_fork": {
+     "recordings": 2,
+     "no_ai": {
+      "value": 0.9250336172120126,
+      "low": 0.8913043478260869,
+      "high": 0.9587628865979382
+     },
+     "ai_pretrained": {
+      "value": 0.7150380995069475,
+      "low": 0.5434782608695652,
+      "high": 0.8865979381443299
+     },
+     "ai_trained": {
+      "value": 0.6119453160017929,
+      "low": 0.5434782608695652,
+      "high": 0.6804123711340206
+     }
+    },
+    "gong": {
+     "recordings": 11,
+     "no_ai": {
+      "value": 0.6494626244398033,
+      "low": 0.4392521487964469,
+      "high": 0.8331085817742466
+     },
+     "ai_pretrained": {
+      "value": 0.23834490621603824,
+      "low": 0.07212625396330372,
+      "high": 0.4363380447189375
+     },
+     "ai_trained": {
+      "value": 0.1713579585707133,
+      "low": 0.014743156471781005,
+      "high": 0.347782972351072
+     }
+    },
+    "voice": {
+     "recordings": 5,
+     "no_ai": {
+      "value": 0.4638113567586105,
+      "low": 0.24089027722146508,
+      "high": 0.7149226363602986
+     },
+     "ai_pretrained": {
+      "value": 0.08639977759243814,
+      "low": 0.0,
+      "high": 0.2276841812621629
+     },
+     "ai_trained": {
+      "value": 0.028901734104046246,
+      "low": 0.0,
+      "high": 0.08670520231213874
+     }
+    },
+    "drum": {
+     "recordings": 20,
+     "no_ai": {
+      "value": 0.14032771172225728,
+      "low": 0.02702702702702703,
+      "high": 0.28262562324080137
+     },
+     "ai_pretrained": {
+      "value": 0.005844155844155844,
+      "low": 0.0,
+      "high": 0.01753246753246753
+     },
+     "ai_trained": {
+      "value": 0.005627705627705628,
+      "low": 0.0,
+      "high": 0.016883116883116882
+     }
+    },
+    "shaker": {
+     "recordings": 9,
+     "no_ai": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     },
+     "ai_pretrained": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     },
+     "ai_trained": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     }
+    },
+    "rainstick": {
+     "recordings": 4,
+     "no_ai": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     },
+     "ai_pretrained": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     },
+     "ai_trained": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.0
+     }
+    }
+   },
+   "summary": {
+    "should_colour": {
+     "recordings": 30,
+     "no_ai": {
+      "value": 0.6167722621030488,
+      "low": 0.4904721559482848,
+      "high": 0.7367517815166825
+     },
+     "ai_pretrained": {
+      "value": 0.4934549798740739,
+      "low": 0.36469398120789065,
+      "high": 0.6189114750070662
+     },
+     "ai_trained": {
+      "value": 0.46915956361053307,
+      "low": 0.335896203756417,
+      "high": 0.6021336905336093
+     }
+    },
+    "should_not": {
+     "recordings": 49,
+     "no_ai": {
+      "value": 0.2504020385117558,
+      "low": 0.1518583633856625,
+      "high": 0.35672367964818263
+     },
+     "ai_pretrained": {
+      "value": 0.06470767292289242,
+      "low": 0.019652723767812425,
+      "high": 0.12073628816419205
+     },
+     "ai_trained": {
+      "value": 0.04371429239494266,
+      "low": 0.007542676467424956,
+      "high": 0.09277190378285792
+     }
+    }
+   }
+  },
+  "gate_own_segments": {
+   "own_bowl": {
+    "recordings": 10,
+    "no_ai": {
+     "value": 0.6898986912710006,
+     "low": 0.529076788106721,
+     "high": 0.8347285616515268
+    },
+    "ai_pretrained": {
+     "value": 0.4143214435652053,
+     "low": 0.2304787709249388,
+     "high": 0.6071122266659951
+    },
+    "ai_trained": {
+     "value": 0.6284353197894561,
+     "low": 0.47190940469855736,
+     "high": 0.765599828972134
+    }
+   },
+   "own_other": {
+    "recordings": 3,
+    "no_ai": {
+     "value": 0.09727272727272727,
+     "low": 0.0,
+     "high": 0.21
+    },
+    "ai_pretrained": {
+     "value": 0.0,
+     "low": 0.0,
+     "high": 0.0
+    },
+    "ai_trained": {
+     "value": 0.07454545454545454,
+     "low": 0.0,
+     "high": 0.21
+    }
+   }
+  },
+  "light": {
+   "commons/bowl": {
+    "recordings": 30,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 5.55,
+      "low": 3.3,
+      "high": 9.9
+     },
+     "short_share_median": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 0.25
+     },
+     "colours": 55,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 2,
+     "hold_median_s_median": 7.125
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 11.75,
+      "low": 7.65,
+      "high": 17.65
+     },
+     "short_share_median": {
+      "value": 0.5,
+      "low": 0.0385,
+      "high": 0.5835
+     },
+     "colours": 142,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 3.875
+    }
+   },
+   "commons/other": {
+    "recordings": 49,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 0.0,
+      "low": 0.0,
+      "high": 2.7
+     },
+     "short_share_median": {
+      "value": 0.5,
+      "low": 0.0,
+      "high": 0.846
+     },
+     "colours": 120,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 2,
+     "hold_median_s_median": 3.3
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 14.3,
+      "low": 10.7,
+      "high": 23.3
+     },
+     "short_share_median": {
+      "value": 0.8105,
+      "low": 0.6335,
+      "high": 1.0
+     },
+     "colours": 467,
+     "recordings_over_3_per_s_in_1s": 1,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 4,
+     "hold_median_s_median": 1.85
+    }
+   },
+   "youtube/tuneup": {
+    "recordings": 5,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 4.3,
+      "low": 1.5,
+      "high": 8.7
+     },
+     "short_share_median": {
+      "value": 0.316,
+      "low": 0.143,
+      "high": 0.467
+     },
+     "colours": 104,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 2,
+     "hold_median_s_median": 5.5
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 12.7,
+      "low": 2.9,
+      "high": 14.7
+     },
+     "short_share_median": {
+      "value": 0.429,
+      "low": 0.286,
+      "high": 0.71
+     },
+     "colours": 270,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 3.8
+    }
+   },
+   "youtube/on_body": {
+    "recordings": 10,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 7.45,
+      "low": 4.9,
+      "high": 8.25
+     },
+     "short_share_median": {
+      "value": 0.3195,
+      "low": 0.2,
+      "high": 0.375
+     },
+     "colours": 361,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 5.525
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 15.0,
+      "low": 11.4,
+      "high": 19.1
+     },
+     "short_share_median": {
+      "value": 0.5605,
+      "low": 0.477,
+      "high": 0.6350624999999991
+     },
+     "colours": 1479,
+     "recordings_over_3_per_s_in_1s": 2,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 4,
+     "hold_median_s_median": 2.575
+    }
+   },
+   "youtube/concert": {
+    "recordings": 9,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 9.4,
+      "low": 5.1,
+      "high": 16.6
+     },
+     "short_share_median": {
+      "value": 0.436,
+      "low": 0.283,
+      "high": 0.469
+     },
+     "colours": 622,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 3.25
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 16.8,
+      "low": 11.4,
+      "high": 24.3
+     },
+     "short_share_median": {
+      "value": 0.626,
+      "low": 0.525,
+      "high": 0.702
+     },
+     "colours": 1630,
+     "recordings_over_3_per_s_in_1s": 1,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 4,
+     "hold_median_s_median": 2.2
+    }
+   },
+   "own/round": {
+    "recordings": 6,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 8.850000000000001,
+      "low": 7.0,
+      "high": 14.5
+     },
+     "short_share_median": {
+      "value": 0.8265,
+      "low": 0.732,
+      "high": 0.9375
+     },
+     "colours": 47,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 2,
+     "hold_median_s_median": 1.3250000000000002
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 14.5,
+      "low": 11.85,
+      "high": 25.4
+     },
+     "short_share_median": {
+      "value": 0.798,
+      "low": 0.6515,
+      "high": 0.8845000000000001
+     },
+     "colours": 82,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 1.3250000000000002
+    }
+   },
+   "own/session": {
+    "recordings": 14,
+    "flow": {
+     "changes_per_min_median": {
+      "value": 8.9,
+      "low": 2.4,
+      "high": 12.3
+     },
+     "short_share_median": {
+      "value": 0.40349999999999997,
+      "low": 0.225,
+      "high": 0.6515
+     },
+     "colours": 114,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 3.075
+    },
+    "strike": {
+     "changes_per_min_median": {
+      "value": 13.8,
+      "low": 6.85,
+      "high": 26.0
+     },
+     "short_share_median": {
+      "value": 0.706,
+      "low": 0.6,
+      "high": 0.824
+     },
+     "colours": 243,
+     "recordings_over_3_per_s_in_1s": 0,
+     "recordings_over_3_per_s_in_10s": 0,
+     "max_changes_1s": 3,
+     "hold_median_s_median": 1.85
+    }
+   }
+  },
+  "flow_vs_strike": {
+   "Strikes right (YouTube)": {
+    "flow": "71 % [43, 81]",
+    "strike": "75 % [57, 81]"
+   },
+   "First colour right": {
+    "flow": "71 % [43, 81]",
+    "strike": "68 % [43, 76]"
+   },
+   "Latency, median": {
+    "flow": "0.24 s [0.22, 0.25]",
+    "strike": "0.11 s [0.05, 0.38]"
+   },
+   "Singing bowls, colour share": {
+    "flow": "92 % [84, 97]",
+    "strike": "95 % [89, 99]"
+   },
+   "Gongs, colour share": {
+    "flow": "56 % [35, 76]",
+    "strike": "93 % [88, 97]"
+   },
+   "Sessions, changes a minute": {
+    "flow": "7.5 [4.9, 8.2]",
+    "strike": "15.0 [11.4, 19.1]"
+   },
+   "Concerts, changes a minute": {
+    "flow": "9.4 [5.1, 16.6]",
+    "strike": "16.8 [11.4, 24.3]"
+   },
+   "Sessions, colours under 3 s": {
+    "flow": "32 % [20, 38]",
+    "strike": "56 % [48, 64]"
+   }
+  },
+  "per_recording": {
+   "youtube/-ar9vsmFhJU": {
+    "flow": [
+     {
+      "t": 58.81,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 94.058,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 125.434,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 162.938,
+      "chakra": 1,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.162
+     },
+     {
+      "t": 194.266,
+      "chakra": 1,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 224.33,
+      "chakra": 1,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 262.362,
+      "chakra": 2,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 300.41,
+      "chakra": 2,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 334.458,
+      "chakra": 2,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 375.754,
+      "chakra": 3,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 1.346
+     },
+     {
+      "t": 403.034,
+      "chakra": 3,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 432.378,
+      "chakra": 3,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 471.514,
+      "chakra": 4,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.286
+     },
+     {
+      "t": 492.458,
+      "chakra": 4,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 512.842,
+      "chakra": 4,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 536.778,
+      "chakra": 5,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.222
+     },
+     {
+      "t": 551.29,
+      "chakra": 5,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 571.114,
+      "chakra": 5,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 597.114,
+      "chakra": 6,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.186
+     },
+     {
+      "t": 632.746,
+      "chakra": 6,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 662.346,
+      "chakra": 6,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     }
+    ],
+    "strike": [
+     {
+      "t": 58.81,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 94.058,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 125.434,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 162.938,
+      "chakra": 1,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.0
+     },
+     {
+      "t": 194.266,
+      "chakra": 1,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 224.33,
+      "chakra": 1,
+      "right": true,
+      "already": true,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 262.362,
+      "chakra": 2,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 300.41,
+      "chakra": 2,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 334.458,
+      "chakra": 2,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 375.754,
+      "chakra": 3,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.046
+     },
+     {
+      "t": 403.034,
+      "chakra": 3,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 432.378,
+      "chakra": 3,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 471.514,
+      "chakra": 4,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.086
+     },
+     {
+      "t": 492.458,
+      "chakra": 4,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 512.842,
+      "chakra": 4,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 536.778,
+      "chakra": 5,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.122
+     },
+     {
+      "t": 551.29,
+      "chakra": 5,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 571.114,
+      "chakra": 5,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 597.114,
+      "chakra": 6,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.0
+     },
+     {
+      "t": 632.746,
+      "chakra": 6,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     },
+     {
+      "t": 662.346,
+      "chakra": 6,
+      "right": true,
+      "already": true,
+      "first_right": true,
+      "latency_s": null
+     }
+    ]
+   },
+   "youtube/u1KjQTAHSlo": {
+    "flow": [
+     {
+      "t": 104.266,
+      "chakra": 6,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.234
+     },
+     {
+      "t": 144.746,
+      "chakra": 5,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.254
+     },
+     {
+      "t": 180.266,
+      "chakra": 4,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 219.29,
+      "chakra": 3,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 257.274,
+      "chakra": 2,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 288.058,
+      "chakra": 1,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 1.242
+     },
+     {
+      "t": 321.018,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     }
+    ],
+    "strike": [
+     {
+      "t": 104.266,
+      "chakra": 6,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.134
+     },
+     {
+      "t": 144.746,
+      "chakra": 5,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 1.354
+     },
+     {
+      "t": 180.266,
+      "chakra": 4,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 219.29,
+      "chakra": 3,
+      "right": true,
+      "already": false,
+      "first_right": true,
+      "latency_s": 0.11
+     },
+     {
+      "t": 257.274,
+      "chakra": 2,
+      "right": true,
+      "already": false,
+      "first_right": false,
+      "latency_s": 0.626
+     },
+     {
+      "t": 288.058,
+      "chakra": 1,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     },
+     {
+      "t": 321.018,
+      "chakra": 0,
+      "right": false,
+      "already": false,
+      "first_right": false,
+      "latency_s": null
+     }
+    ]
+   },
+   "youtube/8Qhh2VF1Oz4": {
+    "flow": [],
+    "strike": []
+   }
+  }
+ },
+ "data": {
+  "recordings": {
+   "commons": 79,
+   "youtube": 24,
+   "own": 20
+  },
+  "hours": {
+   "commons": 0.82,
+   "youtube": 4.49,
+   "own": 0.61
+  },
+  "hashes": {
+   "commons": {
+    "recordings": 79,
+    "sha256": "b89c100897acf97393693eb09e48db9669ac4011cd68e7b4718aca035919e494"
+   },
+   "youtube": {
+    "recordings": 25,
+    "sha256": "5d0a01aee0ea109b0e6ce5af3bd330a6a3596aaadc2e5e5b2539fc522ff719d6"
+   },
+   "own": {
+    "recordings": 20,
+    "sha256": "957e45784bd5780acdddbf99ddd9413be13a3efe222c58ddda1d982bde6c97ab"
+   },
+   "all": "7b96ad15700059360fa35348b2ac81d999d5dc884877dd5715b7d20ac662bd8c"
+  },
+  "duplicates_left_out": [
+   "youtube/CPlC2404Ils"
+  ],
+  "cleaning": {
+   "commons_pronunciations_left_out": 17,
+   "titles": [
+    "File:De-Shakers.ogg",
+    "File:En-au-maraca.ogg",
+    "File:Es-Gong-article.ogg",
+    "File:LL-Q150 (fra)-Idéalités-shaker.wav",
+    "File:LL-Q150 (fra)-Jérémy-Günther-Heinz Jähnick-mettre la quenelle dans le shaker.wav",
+    "File:LL-Q150 (fra)-Jérémy-Günther-Heinz Jähnick-shaker.wav",
+    "File:LL-Q150 (fra)-Lepticed7-mettre la quenelle dans le shaker.wav",
+    "File:LL-Q150 (fra)-LoquaxFR-mettre la quenelle dans le shaker.wav",
+    "File:LL-Q150 (fra)-Lyokoï-shaker.wav",
+    "File:LL-Q150 (fra)-WikiLucas00-mettre la quenelle dans le shaker.wav",
+    "File:LL-Q1860 (eng)-Neøn-salt shaker.wav",
+    "File:LL-Q1860 (eng)-Status 401-Pepper shaker.wav",
+    "File:LL-Q1860 (eng)-Vealhurl-pepper shaker.wav",
+    "File:LL-Q36759-Youvalentine-gang1 hu1 de5 工夫茶 -thé Gong Fu, Gong Fu Cha (type de préparation du thé)-.wav",
+    "File:LL-Q652 (ita)-DanielParoliere-shaker.wav",
+    "File:Nl-shaker.ogg",
+    "File:Nl-shakers.ogg"
+   ],
+   "rule": "fetch_clips.PRONUNCIATION: Lingua Libre and Wiktionary word recordings"
+  }
+ },
+ "figures": {
+  "strikes": [
+   "strikes.png",
+   "strikes.svg",
+   "strikes-dark.png",
+   "strikes-dark.svg"
+  ],
+  "latency": [
+   "latency.png",
+   "latency.svg",
+   "latency-dark.png",
+   "latency-dark.svg"
+  ],
+  "gate": [
+   "gate.png",
+   "gate.svg",
+   "gate-dark.png",
+   "gate-dark.svg"
+  ],
+  "light": [
+   "light.png",
+   "light.svg",
+   "light-dark.png",
+   "light-dark.svg"
+  ],
+  "short": [
+   "short.png",
+   "short.svg",
+   "short-dark.png",
+   "short-dark.svg"
+  ]
+ },
+ "provenance": {
+  "git": {
+   "chakra": {
+    "commit": "d7ddbb2537bb666665cf78599d48eafeb55a2026",
+    "subject": "Evaluation pipeline: stages from data to a scientific report, reproducible",
+    "diff_sha256": null
+   },
+   "chakrav": {
+    "commit": "78bfb56b88b075fc7311d982357825f9f8c52df9",
+    "subject": "Videos are streamed through their best window, not the centre"
+   }
+  },
+  "dirty_files": 1,
+  "config_sha256": "c473ec5e2c85084488c219d67641e806daab4d34bfb993ae7f19bf23fb00a9be",
+  "data": {
+   "commons": {
+    "recordings": 79,
+    "sha256": "b89c100897acf97393693eb09e48db9669ac4011cd68e7b4718aca035919e494"
+   },
+   "youtube": {
+    "recordings": 25,
+    "sha256": "5d0a01aee0ea109b0e6ce5af3bd330a6a3596aaadc2e5e5b2539fc522ff719d6"
+   },
+   "own": {
+    "recordings": 20,
+    "sha256": "957e45784bd5780acdddbf99ddd9413be13a3efe222c58ddda1d982bde6c97ab"
+   },
+   "all": "7b96ad15700059360fa35348b2ac81d999d5dc884877dd5715b7d20ac662bd8c"
+  },
+  "tools": {
+   "python": "3.14.9",
+   "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+   "numpy": "2.5.3",
+   "scipy": "1.17.1",
+   "matplotlib": "3.10.9",
+   "scikit-learn": "1.8.0",
+   "torch": null,
+   "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+   "cc": "Apple clang version 21.0.0 (clang-2100.3.34.2)"
+  },
+  "detector_sources_sha256": "4917f4824e88221625932ceec16fa38d866f42816d4ddac349f21bd41b11f9ea"
+ }
+}
