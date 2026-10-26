@@ -17,10 +17,10 @@ BG, CARD, INK, SUB = "#141219", "#24212C", "#FFFFFF", "#B9B4C6"
 RGB = ["#E0262B", "#F47A1F", "#F2B705", "#2FA84F", "#1E88E5", "#4B3FB5", "#9B3FC8"]
 STEPS = [
     ("Listen", "ES8311 microphone\n16 kHz, 64 ms hops"),
-    ("Find the tone", "4096-point FFT, 3.9 Hz\nharmonics, interpolation"),
-    ("Is it a tone?", "loud enough, 45 % of the\nenergy on its harmonics,\npitch steady for 0.4 s"),
+    ("Strike and tone", "4096-point FFT, 3.9 Hz;\nstrikes by spectral flux,\nringing bowls taken off"),
+    ("Is it a tone?", "loud enough, 45 % on its\nharmonics, pitch steady:\n0.4 s Flow, 0.13 s Strike"),
     ("Which chakra?", "note (A = 440 or 432),\nSolfeggio, or your\nown learned bowls"),
-    ("Colour the room", "screen fades to the colour,\nHue, Home Assistant, WiZ\nfollow; silence keeps it"),
+    ("Colour the room", "screen and lamps fade;\nsilence keeps the colour;\nAI gate on: kick, swell"),
 ]
 
 
