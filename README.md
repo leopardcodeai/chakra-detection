@@ -167,6 +167,7 @@ the environment and writes them straight to the board.
 | Board: microphone, Wi-Fi, Home Assistant, Hue, WiZ, the screen lamp's page (`/lamp`), settings in NVS | `main/main.c` |
 | Simulator side and feeder | `components/app_chakra/host/platform_pc.c`, `tools/chakra_feed.py` |
 | Tests | `tests/test_detect.c`, `tests/analyse_wav.c` |
+| How the light would change over a recording: changes a minute, holds, flicker, dark gaps | `tools/light_timeline.py` |
 
 The detection is plain C with no dependencies, so the board, the simulator and the tests run the same code.
 This app replaces four generations of an ESPHome firmware for the ESP32-S3-BOX-3 (2025 to 2026): their
