@@ -20,7 +20,9 @@ bigger models can add. (ChakraA: the audio one. ChakraV: with video.)
 | AI | none needed; an optional local AI sound gate, on the device only | as much on the device as the ESP32-S31 runs, plus optional cloud models with your own API key |
 | For | rooms where a camera is not wanted: the classic, private choice | experiments: what can it see and mark? |
 
-<p align="center"><img src="docs/demo.gif" width="360" alt="The app hearing seven bowls, root to crown: the screen turns red, orange, yellow, green, blue, indigo and violet"></p>
+<p align="center"><img src="docs/demo.gif" width="300" alt="The app hearing seven bowls, root to crown: the screen turns red, orange, yellow, green, blue, indigo and violet"> <img src="docs/app_round.gif" width="300" alt="A real round of seven bowls played into the app: Root in red, Solar plexus in yellow, Throat in blue, Third eye in indigo, with the note, Hz and cents"></p>
+
+*Left: seven bowl-like test tones. Right: a real round of the owner's bowls, tuned C3 to B3, played into the app on the Mac.*
 
 | Ready | A bowl sounds | Crown | Settings | Connections |
 |---|---|---|---|---|
